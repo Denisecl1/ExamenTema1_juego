@@ -2,32 +2,52 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <title>Ciber-Defensa: Asalto al Firewall</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ciber-Defensa: Firewall Protocol | Diana Campos</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- CSS propio -->
     <link rel="stylesheet" href="styles.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
+<body class="bg-dark text-center text-light">
 
-    <div class="container text-center mt-3">
-        <h1>FIREWALL PROTOCOL</h1>
-        
-        <div class="row g-2 mb-3 mt-4 justify-content-center">
-            <div class="col-4 col-md-3">
-                <div class="stat-panel">AMENAZAS: <span id="val-eliminados">0</span></div>
-            </div>
-            <div class="col-4 col-md-3">
-                <div class="stat-panel">INTEGRIDAD: <span id="val-vida">100%</span></div>
-            </div>
-        </div>
-        
-        <div class="canvas-wrapper">
-            <canvas id="gameCanvas"></canvas>
-        </div>
+    <div class="container mt-3">
+        <h1 class="text-info fw-bold">🛡️ Ciber-Defensa: Asalto al Firewall</h1>
+        <p class="text-secondary">Protege los sectores de datos y destruye la base de virus</p>
+    </div>
 
-        <div class="mt-4">
-            <button class="btn-restart" onclick="location.reload()">REINICIAR SISTEMA</button>
+    <!-- HUD -->
+    <div class="hud container mb-2">
+        <div class="row">
+            <div class="col">
+                <span>❤️ Vida Base: <span id="baseLife">50</span></span>
+            </div>
+            <div class="col">
+                <span>📊 Puntuación: <span id="score">0</span></span>
+            </div>
+            <div class="col">
+                <span>🛡️ Escudo: <span id="shieldStatus">OFF</span></span>
+            </div>
         </div>
+    </div>
+
+    <!-- Canvas -->
+    <div class="d-flex justify-content-center">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- Pantalla Game Over -->
+    <div id="gameOverScreen" class="overlay d-none">
+        <h2>💀 Firewall Corrompido</h2>
+        <button class="btn btn-info mt-3" onclick="restartGame()">Reiniciar</button>
+    </div>
+
+    <!-- Pantalla Victoria -->
+    <div id="winScreen" class="overlay d-none">
+        <h2>🏆 ¡Base de Virus Destruida!</h2>
+        <button class="btn btn-success mt-3" onclick="restartGame()">Jugar de nuevo</button>
     </div>
 
     <script src="js/main.js"></script>
