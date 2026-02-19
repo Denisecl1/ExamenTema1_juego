@@ -1,0 +1,65 @@
+body {
+    /* Configuración de la imagen de fondo */
+    background-image: url('img/fondo.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    
+    /* Mantenemos tus estilos anteriores */
+    color: #00f2ff;
+    font-family: 'Courier New', Courier, monospace;
+    margin: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+h1 {
+    color: #ffffff;
+    text-shadow: 0 0 10px #ff007a, 0 0 20px #ff007a;
+    letter-spacing: 5px;
+    margin-top: 20px;
+}
+
+.stat-panel {
+    background: rgba(0, 242, 255, 0.1); /* Un poco más opaco para resaltar sobre el fondo */
+    border: 2px solid #00f2ff;
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+    font-weight: bold;
+    backdrop-filter: blur(5px); /* Efecto de cristal esmerilado */
+}
+
+#gameCanvas {
+    background-color: rgba(5, 5, 5, 0.8); /* Fondo semi-transparente para ver un poco el fondo */
+    border: 3px solid #00f2ff;
+    border-radius: 20px;
+    box-shadow: 0 0 25px rgba(0, 242, 255, 0.5);
+    cursor: crosshair;
+    max-width: 95%; /* Ajuste para móviles */
+    height: auto;
+    margin-top: 10px;
+}
+
+.btn-restart {
+    background: #050505;
+    color: #00f2ff;
+    border: 2px solid #00f2ff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    box-shadow: 0 0 8px #00f2ff;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.3s ease;
+}
+
+.btn-restart:hover {
+    background: #00f2ff;
+    color: #050505;
+    box-shadow: 0 0 20px #00f2ff;
+}
