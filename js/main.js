@@ -10,7 +10,7 @@ canvas.width = 1000;
 canvas.height = 600;
 
 // =======================
-// CARGA DE IMÁGENES (SPRITES)
+// CARGA DE IMÁGENES
 // =======================
 const baseImg = new Image(); baseImg.src = "img/base.png";
 const virusImg = new Image(); virusImg.src = "img/virus.png";
@@ -23,6 +23,7 @@ const sectorImg = new Image(); sectorImg.src = "img/sector.png";
 const baseLifeText = document.getElementById("baseLife");
 const scoreText = document.getElementById("score");
 const shieldText = document.getElementById("shieldStatus");
+const playerLivesText = document.getElementById("playerLivesText"); // NUEVO
 const levelText = document.getElementById("levelText"); 
 const gameOverScreen = document.getElementById("gameOverScreen");
 const winScreen = document.getElementById("winScreen");
@@ -40,14 +41,17 @@ const maxLevels = 10;
 let shieldActive = false;
 let multishotActive = false;
 let speedBoostActive = false;
+let lastHitTime = Date.now(); // NUEVO: Para la regeneración del nivel 10
 
 // =======================
-// JUGADOR
+// JUGADOR (Ajustado con vidas)
 // =======================
 const player = {
     x: canvas.width / 2, y: canvas.height / 2,
     width: 70, height: 70,
-    baseSpeed: 5, speed: 5
+    baseSpeed: 5, speed: 5,
+    lives: 3,               // NUEVO: 3 Vidas
+    isInvulnerable: false   // NUEVO: Estado de daño
 };
 
 // =======================
@@ -61,7 +65,7 @@ const enemyBase = {
 };
 
 // =======================
-// SECTOR A PROTEGER (ÚNICO)
+// SECTOR A PROTEGER
 // =======================
 const dataSector = { 
     x: canvas.width / 2, y: 520, 
@@ -80,18 +84,12 @@ let powerUpIntervalId;
 let massiveWaveIntervalId;
 
 function startSpawners() {
-    clearInterval(virusIntervalId);
-    clearInterval(powerUpIntervalId);
-    clearInterval(massiveWaveIntervalId);
+    clearInterval(virusIntervalId); clearInterval(powerUpIntervalId); clearInterval(massiveWaveIntervalId);
 
     let spawnRate = Math.max(600, 1500 - ((currentLevel - 1) * 100));
 
-    // Spawn Normal
-    virusIntervalId = setInterval(() => {
-        if (gameState === "playing") spawnVirus();
-    }, spawnRate);
+    virusIntervalId = setInterval(() => { if (gameState === "playing") spawnVirus(); }, spawnRate);
 
-    // Spawn PowerUps
     powerUpIntervalId = setInterval(() => {
         if (gameState === "playing") {
             const types = ["shield", "multishot", "speed"];
@@ -103,7 +101,6 @@ function startSpawners() {
         }
     }, 10000);
 
-    // NUEVO: Oleada Masiva
     massiveWaveIntervalId = setInterval(() => {
         if (gameState === "playing") spawnMassiveWave();
     }, 12000);
@@ -115,31 +112,21 @@ function spawnVirus() {
     enemies.push(createEnemyObject(angle, baseVirusSpeed));
 }
 
-// CORRECCIÓN: Genera muchos virus en abanico separados
 function spawnMassiveWave() {
     for (let i = 0; i < 8; i++) {
         const angle = (Math.PI / 7) * i; 
         let speed = 1.5 + (currentLevel * 0.2);
-        
-        // Separamos el punto de aparición (Radio de 45px)
         let radioAparicion = 45; 
         let startX = enemyBase.x + Math.cos(angle) * radioAparicion;
         let startY = (enemyBase.y + enemyBase.height / 2) + Math.sin(angle) * radioAparicion;
-
-        enemies.push({
-            x: startX, y: startY,
-            width: 50, height: 50,
-            speed: speed + Math.random(), 
-            dx: Math.cos(angle), dy: Math.sin(angle),
-            zigzagOffset: Math.random() * 100, zigzagSpeed: 0.08 + Math.random() * 0.05,
-            radius: 25
-        });
+        enemies.push(createEnemyObject(angle, speed, startX, startY));
     }
 }
 
-function createEnemyObject(angle, speed) {
+function createEnemyObject(angle, speed, startX = null, startY = null) {
     return {
-        x: enemyBase.x, y: enemyBase.y + enemyBase.height / 2,
+        x: startX !== null ? startX : enemyBase.x, 
+        y: startY !== null ? startY : enemyBase.y + enemyBase.height / 2,
         width: 50, height: 50,
         speed: speed + Math.random(), 
         dx: Math.cos(angle), dy: Math.sin(angle),
@@ -182,9 +169,6 @@ if (btnNextLevel) {
     });
 }
 
-// =======================
-// LÓGICA DE MOVIMIENTO
-// =======================
 function moveEnemyBase() {
     enemyBase.x += enemyBase.speed * enemyBase.direction;
     if (enemyBase.x - enemyBase.width / 2 <= 0 || enemyBase.x + enemyBase.width / 2 >= canvas.width) enemyBase.direction *= -1;
@@ -199,9 +183,6 @@ function movePlayer() {
     player.y = Math.max(player.height / 2, Math.min(canvas.height - player.height / 2, player.y));
 }
 
-// =======================
-// COLISIONES
-// =======================
 function checkCollisionCircle(a, b) { return Math.hypot(a.x - b.x, a.y - b.y) < a.radius + b.radius; }
 function checkCollisionRectCircle(circle, rect) {
     let distX = Math.abs(circle.x - rect.x), distY = Math.abs(circle.y - rect.y);
@@ -228,9 +209,11 @@ function levelUp() {
     dataSector.maxLife = 5 + (currentLevel * 2);
     dataSector.life = dataSector.maxLife;
 
+    // Recuperamos 1 vida al pasar de nivel (Opcional, pero ayuda en niveles altos)
+    if(player.lives < 3) player.lives++;
+
     enemies.length = 0; bullets.length = 0; powerUps.length = 0;
     startSpawners();
-    if(levelText) levelText.innerText = currentLevel;
 }
 
 // =======================
@@ -238,6 +221,16 @@ function levelUp() {
 // =======================
 function update() {
     movePlayer(); moveEnemyBase();
+
+    // NUEVA MECÁNICA: Regeneración Nivel 10
+    if (currentLevel === 10 && gameState === "playing") {
+        // Si han pasado más de 1.5 segundos (1500 ms) sin recibir daño
+        if (Date.now() - lastHitTime > 1500) {
+            if (enemyBase.life < enemyBase.maxLife) {
+                enemyBase.life += 0.08; // Se cura gradualmente en cada frame
+            }
+        }
+    }
 
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
@@ -254,16 +247,12 @@ function update() {
         enemy.x += (enemy.dx * enemy.speed) + (perpX * oscillation);
         enemy.y += (enemy.dy * enemy.speed) + (perpY * oscillation);
 
-        // CORRECCIÓN: Rebote entre virus con separación
         for (let j = i + 1; j < enemies.length; j++) {
             if (checkCollisionCircle(enemy, enemies[j])) {
                 let tempDx = enemy.dx, tempDy = enemy.dy;
                 enemy.dx = enemies[j].dx; enemy.dy = enemies[j].dy;
                 enemies[j].dx = tempDx; enemies[j].dy = tempDy;
-
-                // Física de separación para romper el bucle
-                enemy.x += enemy.dx * 3;
-                enemy.y += enemy.dy * 3;
+                enemy.x += enemy.dx * 3; enemy.y += enemy.dy * 3;
             }
         }
 
@@ -280,8 +269,18 @@ function update() {
         }
         if (enemies[i] !== enemy) continue;
 
-        if (!shieldActive && checkCollisionCircle({ x: enemy.x, y: enemy.y, radius: enemy.radius }, { x: player.x, y: player.y, radius: 30 })) {
-            gameState = "gameover";
+        // NUEVO: Daño al jugador (Sistema de Vidas)
+        if (!shieldActive && !player.isInvulnerable && checkCollisionCircle({ x: enemy.x, y: enemy.y, radius: enemy.radius }, { x: player.x, y: player.y, radius: 30 })) {
+            player.lives--; // Restar una vida
+            enemies.splice(i, 1); // Destruir el virus que nos pegó
+            
+            if (player.lives <= 0) {
+                gameState = "gameover";
+            } else {
+                // Hacer al jugador invulnerable por 2 segundos
+                player.isInvulnerable = true;
+                setTimeout(() => { player.isInvulnerable = false; }, 2000);
+            }
         }
     }
 
@@ -298,24 +297,24 @@ function update() {
         } else if (p.y > canvas.height) powerUps.splice(i, 1);
     }
 
-    // BALA VS BASE ENEMIGA
     for (let i = bullets.length - 1; i >= 0; i--) {
         if (checkCollisionRectCircle(bullets[i], enemyBase)) {
             enemyBase.life--;
             bullets.splice(i, 1);
+            lastHitTime = Date.now(); // Actualizar el reloj para evitar que regenere
 
             if (enemyBase.life <= 0) {
                 gameState = "level_cleared"; 
-                clearInterval(virusIntervalId);
-                clearInterval(powerUpIntervalId);
-                clearInterval(massiveWaveIntervalId);
+                clearInterval(virusIntervalId); clearInterval(powerUpIntervalId); clearInterval(massiveWaveIntervalId);
                 if (nextLevelScreen) nextLevelScreen.classList.remove("d-none");
             }
         }
     }
 
-    if(baseLifeText) baseLifeText.innerText = enemyBase.life;
+    // Actualizar HUD
+    if(baseLifeText) baseLifeText.innerText = Math.ceil(enemyBase.life); // Math.ceil para redondear la regeneración
     if(scoreText) scoreText.innerText = score;
+    if(playerLivesText) playerLivesText.innerText = player.lives;
 }
 
 // =======================
@@ -325,10 +324,15 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = "rgba(0, 242, 255, 0.2)"; ctx.font = "bold 100px 'Courier New'"; ctx.textAlign = "center";
-    ctx.fillText("NIVEL " + currentLevel, canvas.width / 2, canvas.height / 2 + 30);
+    ctx.fillText(currentLevel === 10 ? "NIVEL 10: JEFE" : "NIVEL " + currentLevel, canvas.width / 2, canvas.height / 2 + 30);
 
+    // DIBUJAR BASE ENEMIGA
     ctx.save();
-    if (enemyBase.life <= enemyBase.maxLife * 0.5) {
+    if (currentLevel === 10 && (Date.now() - lastHitTime > 1500) && enemyBase.life < enemyBase.maxLife) {
+        // Efecto visual de curación (Verde) en nivel 10
+        ctx.filter = "sepia(100%) hue-rotate(90deg) saturate(300%)"; 
+        ctx.shadowBlur = 30; ctx.shadowColor = "#39ff14";
+    } else if (enemyBase.life <= enemyBase.maxLife * 0.5) {
         ctx.filter = "sepia(100%) hue-rotate(-50deg) saturate(500%)"; 
         ctx.shadowBlur = 30; ctx.shadowColor = "#ff0000";
     } else {
@@ -341,12 +345,19 @@ function draw() {
     ctx.fillStyle = "#fff"; ctx.font = "bold 16px 'Courier New'";
     ctx.fillText("HP: " + dataSector.life + "/" + dataSector.maxLife, dataSector.x, dataSector.y + 60);
 
+    // DIBUJAR JUGADOR (Con efecto de parpadeo por invulnerabilidad)
     ctx.save();
+    if (player.isInvulnerable) {
+        // Matemática avanzada: Hacer parpadear la opacidad usando una onda de Seno en el tiempo
+        ctx.globalAlpha = Math.abs(Math.sin(Date.now() / 150)); 
+    }
+    
     if (shieldActive) { ctx.shadowBlur = 20; ctx.shadowColor = "#39ff14"; }
     else if (speedBoostActive) { ctx.shadowBlur = 20; ctx.shadowColor = "#00f2ff"; }
     else if (multishotActive) { ctx.shadowBlur = 20; ctx.shadowColor = "#ffcc00"; }
+    
     ctx.drawImage(playerImg, player.x - player.width / 2, player.y - player.height / 2, player.width, player.height);
-    ctx.restore();
+    ctx.restore(); // Restaura la opacidad normal para lo demás
 
     ctx.fillStyle = "#00f2ff";
     bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fill(); });
