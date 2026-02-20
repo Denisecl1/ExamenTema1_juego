@@ -47,18 +47,20 @@ const player = {
 };
 
 // =======================
-// BASE ENEMIGA (IMAGEN)
+// BASE ENEMIGA (AHORA CON MOVIMIENTO)
 // =======================
 const enemyBase = {
     x: canvas.width / 2,
     y: 90,
     width: 130,
     height: 130,
-    life: 50
+    life: 50,
+    speed: 2,
+    direction: 1 // 1 = derecha, -1 = izquierda
 };
 
 // =======================
-// SECTORES DE DATOS (IMAGEN sector.png)
+// SECTORES DE DATOS (BASES A PROTEGER)
 // =======================
 const dataSectors = [
     { x: 200, y: 520, width: 90, height: 90, life: 5 },
@@ -105,16 +107,52 @@ canvas.addEventListener("click", () => {
 });
 
 // =======================
-// SPAWN DE VIRUS DESDE LA BASE
+// MOVIMIENTO DE LA BASE ENEMIGA (NUEVO)
+// =======================
+function moveEnemyBase() {
+    enemyBase.x += enemyBase.speed * enemyBase.direction;
+
+    // Rebotar en bordes del canvas
+    if (
+        enemyBase.x - enemyBase.width / 2 <= 0 ||
+        enemyBase.x + enemyBase.width / 2 >= canvas.width
+    ) {
+        enemyBase.direction *= -1;
+    }
+}
+
+// =======================
+// SPAWN DE VIRUS DESDE LA BASE EN MOVIMIENTO (MEJORADO)
 // =======================
 setInterval(() => {
     if (gameState === "playing") {
+
+        // Elegir sector más cercano desde la base
+        let target = dataSectors[0];
+        let minDist = Infinity;
+
+        dataSectors.forEach(sector => {
+            const d = Math.hypot(sector.x - enemyBase.x, sector.y - enemyBase.y);
+            if (d < minDist) {
+                minDist = d;
+                target = sector;
+            }
+        });
+
+        // Calcular dirección hacia el sector objetivo
+        const angle = Math.atan2(
+            target.y - (enemyBase.y + enemyBase.height / 2),
+            target.x - enemyBase.x
+        );
+
         enemies.push({
             x: enemyBase.x,
-            y: enemyBase.y + 60,
+            y: enemyBase.y + enemyBase.height / 2,
             width: 50,
             height: 50,
-            speed: 1.6
+            speed: 1.6 + Math.random() * 0.5,
+            dx: Math.cos(angle),
+            dy: Math.sin(angle)
         });
     }
 }, 1500);
@@ -169,7 +207,6 @@ function movePlayer() {
     if (keys["a"] || keys["arrowleft"]) player.x -= player.speed;
     if (keys["d"] || keys["arrowright"]) player.x += player.speed;
 
-    // Limites del canvas
     player.x = Math.max(player.width / 2, Math.min(canvas.width - player.width / 2, player.x));
     player.y = Math.max(player.height / 2, Math.min(canvas.height - player.height / 2, player.y));
 }
@@ -179,6 +216,7 @@ function movePlayer() {
 // =======================
 function update() {
     movePlayer();
+    moveEnemyBase(); // ⭐ BASE ENEMIGA EN MOVIMIENTO
 
     // Mover balas
     bullets.forEach((b, i) => {
@@ -190,24 +228,10 @@ function update() {
         }
     });
 
-    // Movimiento enemigos hacia el sector más cercano
+    // Movimiento enemigos hacia sectores
     enemies.forEach((enemy, eIndex) => {
-
-        // Elegir el sector más cercano
-        let target = dataSectors[0];
-        let minDist = Infinity;
-
-        dataSectors.forEach(sector => {
-            const d = Math.hypot(sector.x - enemy.x, sector.y - enemy.y);
-            if (d < minDist) {
-                minDist = d;
-                target = sector;
-            }
-        });
-
-        const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
-        enemy.x += Math.cos(angle) * enemy.speed;
-        enemy.y += Math.sin(angle) * enemy.speed;
+        enemy.x += enemy.dx * enemy.speed;
+        enemy.y += enemy.dy * enemy.speed;
 
         // Bala vs virus
         bullets.forEach((b, bIndex) => {
@@ -218,7 +242,7 @@ function update() {
             }
         });
 
-        // Virus vs sectores (IMAGEN)
+        // Virus vs sectores
         dataSectors.forEach((sector) => {
             if (checkCollisionRectCircle(
                 { x: enemy.x, y: enemy.y, radius: 20 },
@@ -284,7 +308,7 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // BASE ENEMIGA
+    // BASE ENEMIGA (EN MOVIMIENTO)
     ctx.drawImage(
         baseImg,
         enemyBase.x - enemyBase.width / 2,
@@ -293,12 +317,11 @@ function draw() {
         enemyBase.height
     );
 
-    // VIDA BASE
     ctx.fillStyle = "#ff0040";
     ctx.font = "18px Arial";
     ctx.fillText("Base: " + enemyBase.life, enemyBase.x - 40, enemyBase.y - 90);
 
-    // NAVE (QUIETA - SIN ROTACIÓN)
+    // NAVE (QUIETA)
     ctx.drawImage(
         playerImg,
         player.x - player.width / 2,
@@ -307,7 +330,7 @@ function draw() {
         player.height
     );
 
-    // ESCUDO VISUAL
+    // ESCUDO
     if (shieldActive) {
         ctx.strokeStyle = "#00ff9c";
         ctx.lineWidth = 3;
@@ -316,7 +339,7 @@ function draw() {
         ctx.stroke();
     }
 
-    // SECTORES DE DATOS (IMAGEN sector.png)
+    // SECTORES (BASES A PROTEGER)
     dataSectors.forEach(sector => {
         ctx.drawImage(
             sectorImg,
@@ -326,7 +349,6 @@ function draw() {
             sector.height
         );
 
-        // Vida del sector (HUD encima)
         ctx.fillStyle = "#ffffff";
         ctx.font = "16px Arial";
         ctx.fillText(
@@ -344,7 +366,7 @@ function draw() {
         ctx.fill();
     });
 
-    // VIRUS (IMAGEN)
+    // VIRUS (SALEN DE LA BASE Y ATACAN SECTORES)
     enemies.forEach(enemy => {
         ctx.drawImage(
             virusImg,
@@ -363,7 +385,7 @@ function draw() {
         ctx.fill();
     });
 
-    // MIRA (CURSOR)
+    // MIRA
     ctx.strokeStyle = "#00ffea";
     ctx.lineWidth = 2;
     ctx.beginPath();
