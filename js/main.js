@@ -1,3 +1,8 @@
+/**
+ * Proyecto: Ciber-Defensa: Firewall Protocol
+ * Autora: Diana Denise Campos Lozano - Ingeniería en TIC
+ */
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -7,17 +12,10 @@ canvas.height = 600;
 // =======================
 // CARGA DE IMÁGENES (SPRITES)
 // =======================
-const baseImg = new Image();
-baseImg.src = "img/base.png";
-
-const virusImg = new Image();
-virusImg.src = "img/virus.png";
-
-const playerImg = new Image();
-playerImg.src = "img/nave.png"; // NAVE
-
-const sectorImg = new Image();
-sectorImg.src = "img/sector.png"; // SECTORES A PROTEGER
+const baseImg = new Image(); baseImg.src = "img/base.png";
+const virusImg = new Image(); virusImg.src = "img/virus.png";
+const playerImg = new Image(); playerImg.src = "img/nave.png";
+const sectorImg = new Image(); sectorImg.src = "img/sector.png";
 
 // =======================
 // HUD ELEMENTOS
@@ -25,49 +23,58 @@ sectorImg.src = "img/sector.png"; // SECTORES A PROTEGER
 const baseLifeText = document.getElementById("baseLife");
 const scoreText = document.getElementById("score");
 const shieldText = document.getElementById("shieldStatus");
+// Puedes agregar un <span id="levelText"> en tu HTML para mostrar el nivel
+const levelText = document.getElementById("levelText"); 
 const gameOverScreen = document.getElementById("gameOverScreen");
 const winScreen = document.getElementById("winScreen");
 
 // =======================
-// ESTADO DEL JUEGO
+// ESTADO DEL JUEGO Y NIVELES
 // =======================
 let gameState = "playing";
 let score = 0;
+let currentLevel = 1;
+const maxLevels = 10;
+
+// Estados de Power-ups
 let shieldActive = false;
+let multishotActive = false;
+let speedBoostActive = false;
 
 // =======================
-// JUGADOR (NAVE DEFENSA - QUIETA VISUALMENTE)
+// JUGADOR
 // =======================
 const player = {
     x: canvas.width / 2,
     y: canvas.height / 2,
-    width: 70,
-    height: 70,
-    speed: 4
+    width: 70, height: 70,
+    baseSpeed: 5,
+    speed: 5
 };
 
 // =======================
-// BASE ENEMIGA (AHORA CON MOVIMIENTO)
+// BASE ENEMIGA (JEFE)
 // =======================
 const enemyBase = {
     x: canvas.width / 2,
     y: 90,
-    width: 130,
-    height: 130,
+    width: 130, height: 130,
     life: 50,
     speed: 2,
-    direction: 1 // 1 = derecha, -1 = izquierda
+    direction: 1
 };
 
 // =======================
-// SECTORES DE DATOS (BASES A PROTEGER)
+// SECTOR A PROTEGER (ÚNICO)
 // =======================
-const dataSectors = [
-    { x: 200, y: 520, width: 90, height: 90, life: 5 },
-    { x: 800, y: 520, width: 90, height: 90, life: 5 }
-];
+const dataSector = { 
+    x: canvas.width / 2, 
+    y: 520, 
+    width: 90, height: 90, 
+    life: 5, 
+    maxLife: 5 
+};
 
-// =======================
 const keys = {};
 const mouse = { x: 0, y: 0 };
 const bullets = [];
@@ -75,132 +82,113 @@ const enemies = [];
 const powerUps = [];
 
 // =======================
-// EVENTOS TECLADO
+// CONTROLADORES DE SPAWN
+// =======================
+let virusIntervalId;
+let powerUpIntervalId;
+
+function startSpawners() {
+    clearInterval(virusIntervalId);
+    clearInterval(powerUpIntervalId);
+
+    // Dificultad: Entre más nivel, menos tiempo entre virus (más rápido salen)
+    // Nivel 1: 1500ms, Nivel 10: 600ms
+    let spawnRate = Math.max(600, 1500 - ((currentLevel - 1) * 100));
+
+    virusIntervalId = setInterval(() => {
+        if (gameState === "playing") {
+            const angle = Math.atan2(
+                dataSector.y - (enemyBase.y + enemyBase.height / 2),
+                dataSector.x - enemyBase.x
+            );
+
+            // Dificultad: Los virus también son ligeramente más rápidos cada nivel
+            let baseVirusSpeed = 1.5 + (currentLevel * 0.2);
+
+            enemies.push({
+                x: enemyBase.x,
+                y: enemyBase.y + enemyBase.height / 2,
+                width: 50, height: 50,
+                speed: baseVirusSpeed + Math.random(), 
+                dx: Math.cos(angle),
+                dy: Math.sin(angle),
+                zigzagOffset: Math.random() * 100,
+                zigzagSpeed: 0.08 + Math.random() * 0.05,
+                radius: 25
+            });
+        }
+    }, spawnRate);
+
+    // Generar PowerUps cada 10 segundos
+    powerUpIntervalId = setInterval(() => {
+        if (gameState === "playing") {
+            const types = ["shield", "multishot", "speed"];
+            const selectedType = types[Math.floor(Math.random() * types.length)];
+            
+            powerUps.push({
+                x: Math.random() * (canvas.width - 40) + 20,
+                y: -20,
+                radius: 14,
+                speed: 2,
+                type: selectedType
+            });
+        }
+    }, 10000);
+}
+
+// Iniciar los spawners por primera vez
+startSpawners();
+
+// =======================
+// EVENTOS INPUT
 // =======================
 window.addEventListener("keydown", (e) => keys[e.key.toLowerCase()] = true);
 window.addEventListener("keyup", (e) => keys[e.key.toLowerCase()] = false);
 
-// =======================
-// MOUSE (MIRA)
-// =======================
 canvas.addEventListener("mousemove", (e) => {
     const rect = canvas.getBoundingClientRect();
     mouse.x = e.clientX - rect.left;
     mouse.y = e.clientY - rect.top;
 });
 
-// =======================
-// DISPARO VECTORIAL (HACIA EL MOUSE)
-// =======================
+// DISPARO
 canvas.addEventListener("click", () => {
     if (gameState !== "playing") return;
 
     const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
 
-    bullets.push({
-        x: player.x,
-        y: player.y,
-        dx: Math.cos(angle) * 8,
-        dy: Math.sin(angle) * 8,
-        radius: 6
-    });
+    if (multishotActive) {
+        // Dispara 3 balas en abanico
+        const offsets = [-0.2, 0, 0.2]; // Ángulos de desvío
+        offsets.forEach(offset => {
+            bullets.push({
+                x: player.x, y: player.y,
+                dx: Math.cos(angle + offset) * 10,
+                dy: Math.sin(angle + offset) * 10,
+                radius: 6
+            });
+        });
+    } else {
+        // Disparo normal
+        bullets.push({
+            x: player.x, y: player.y,
+            dx: Math.cos(angle) * 10,
+            dy: Math.sin(angle) * 10,
+            radius: 6
+        });
+    }
 });
 
 // =======================
-// MOVIMIENTO DE LA BASE ENEMIGA (NUEVO)
+// LÓGICA DE MOVIMIENTO
 // =======================
 function moveEnemyBase() {
     enemyBase.x += enemyBase.speed * enemyBase.direction;
-
-    // Rebotar en bordes del canvas
-    if (
-        enemyBase.x - enemyBase.width / 2 <= 0 ||
-        enemyBase.x + enemyBase.width / 2 >= canvas.width
-    ) {
+    if (enemyBase.x - enemyBase.width / 2 <= 0 || enemyBase.x + enemyBase.width / 2 >= canvas.width) {
         enemyBase.direction *= -1;
     }
 }
 
-// =======================
-// SPAWN DE VIRUS DESDE LA BASE EN MOVIMIENTO (MEJORADO)
-// =======================
-setInterval(() => {
-    if (gameState === "playing") {
-
-        // Elegir sector más cercano desde la base
-        let target = dataSectors[0];
-        let minDist = Infinity;
-
-        dataSectors.forEach(sector => {
-            const d = Math.hypot(sector.x - enemyBase.x, sector.y - enemyBase.y);
-            if (d < minDist) {
-                minDist = d;
-                target = sector;
-            }
-        });
-
-        // Calcular dirección hacia el sector objetivo
-        const angle = Math.atan2(
-            target.y - (enemyBase.y + enemyBase.height / 2),
-            target.x - enemyBase.x
-        );
-
-        enemies.push({
-            x: enemyBase.x,
-            y: enemyBase.y + enemyBase.height / 2,
-            width: 50,
-            height: 50,
-            speed: 1.6 + Math.random() * 0.5,
-            dx: Math.cos(angle),
-            dy: Math.sin(angle)
-        });
-    }
-}, 1500);
-
-// =======================
-// SPAWN POWER-UPS (ESCUDO)
-// =======================
-setInterval(() => {
-    if (gameState === "playing") {
-        powerUps.push({
-            x: Math.random() * canvas.width,
-            y: -20,
-            radius: 14,
-            speed: 2,
-            type: "shield"
-        });
-    }
-}, 8000);
-
-// =======================
-// COLISION CIRCULO-CIRCULO
-// =======================
-function checkCollisionCircle(a, b) {
-    const dist = Math.hypot(a.x - b.x, a.y - b.y);
-    return dist < a.radius + b.radius;
-}
-
-// =======================
-// COLISION CIRCULO-RECTANGULO
-// =======================
-function checkCollisionRectCircle(circle, rect) {
-    let distX = Math.abs(circle.x - rect.x);
-    let distY = Math.abs(circle.y - rect.y);
-
-    if (distX > (rect.width / 2 + circle.radius)) return false;
-    if (distY > (rect.height / 2 + circle.radius)) return false;
-
-    if (distX <= (rect.width / 2)) return true;
-    if (distY <= (rect.height / 2)) return true;
-
-    let dx = distX - rect.width / 2;
-    let dy = distY - rect.height / 2;
-    return (dx * dx + dy * dy <= (circle.radius * circle.radius));
-}
-
-// =======================
-// MOVIMIENTO DEL JUGADOR (SIN ROTACIÓN)
-// =======================
 function movePlayer() {
     if (keys["w"] || keys["arrowup"]) player.y -= player.speed;
     if (keys["s"] || keys["arrowdown"]) player.y += player.speed;
@@ -212,184 +200,221 @@ function movePlayer() {
 }
 
 // =======================
-// UPDATE (LÓGICA)
+// COLISIONES
+// =======================
+function checkCollisionCircle(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y) < a.radius + b.radius;
+}
+function checkCollisionRectCircle(circle, rect) {
+    let distX = Math.abs(circle.x - rect.x);
+    let distY = Math.abs(circle.y - rect.y);
+    if (distX > (rect.width / 2 + circle.radius)) return false;
+    if (distY > (rect.height / 2 + circle.radius)) return false;
+    if (distX <= (rect.width / 2)) return true;
+    if (distY <= (rect.height / 2)) return true;
+    let dx = distX - rect.width / 2;
+    let dy = distY - rect.height / 2;
+    return (dx * dx + dy * dy <= (circle.radius * circle.radius));
+}
+
+// =======================
+// FUNCIÓN SUBIR DE NIVEL
+// =======================
+function levelUp() {
+    currentLevel++;
+    if (currentLevel > maxLevels) {
+        gameState = "win";
+        return;
+    }
+    
+    // Aumentar dificultad de la base
+    enemyBase.life = 50 + (currentLevel * 10);
+    enemyBase.speed = 2 + (currentLevel * 0.5);
+    
+    // Mejorar nuestro sector de protección
+    dataSector.maxLife = 5 + (currentLevel * 2);
+    dataSector.life = dataSector.maxLife;
+
+    // Limpiar pantalla
+    enemies.length = 0;
+    bullets.length = 0;
+    powerUps.length = 0;
+
+    // Reiniciar spawners con nueva dificultad
+    startSpawners();
+
+    if(levelText) levelText.innerText = currentLevel;
+}
+
+// =======================
+// UPDATE (Lógica Principal)
 // =======================
 function update() {
     movePlayer();
-    moveEnemyBase(); // ⭐ BASE ENEMIGA EN MOVIMIENTO
+    moveEnemyBase();
 
-    // Mover balas
-    bullets.forEach((b, i) => {
-        b.x += b.dx;
-        b.y += b.dy;
+    // Actualizar Balas
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i];
+        b.x += b.dx; b.y += b.dy;
+        if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) bullets.splice(i, 1);
+    }
 
-        if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
-            bullets.splice(i, 1);
+    // Actualizar Enemigos
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        let enemy = enemies[i];
+        enemy.zigzagOffset += enemy.zigzagSpeed;
+        const oscillation = Math.sin(enemy.zigzagOffset) * 2.5; 
+        const perpX = -enemy.dy;
+        const perpY = enemy.dx;
+
+        enemy.x += (enemy.dx * enemy.speed) + (perpX * oscillation);
+        enemy.y += (enemy.dy * enemy.speed) + (perpY * oscillation);
+
+        // Rebote entre virus
+        for (let j = i + 1; j < enemies.length; j++) {
+            if (checkCollisionCircle(enemy, enemies[j])) {
+                let tempDx = enemy.dx; let tempDy = enemy.dy;
+                enemy.dx = enemies[j].dx; enemy.dy = enemies[j].dy;
+                enemies[j].dx = tempDx; enemies[j].dy = tempDy;
+            }
         }
-    });
 
-    // Movimiento enemigos hacia sectores
-    enemies.forEach((enemy, eIndex) => {
-        enemy.x += enemy.dx * enemy.speed;
-        enemy.y += enemy.dy * enemy.speed;
-
-        // Bala vs virus
-        bullets.forEach((b, bIndex) => {
-            if (checkCollisionRectCircle(b, enemy)) {
-                enemies.splice(eIndex, 1);
-                bullets.splice(bIndex, 1);
+        // Bala vs Virus
+        for (let k = bullets.length - 1; k >= 0; k--) {
+            if (checkCollisionRectCircle(bullets[k], enemy)) {
+                enemies.splice(i, 1);
+                bullets.splice(k, 1);
                 score += 10;
+                break; 
             }
-        });
+        }
+        if (enemies[i] !== enemy) continue; 
 
-        // Virus vs sectores
-        dataSectors.forEach((sector) => {
-            if (checkCollisionRectCircle(
-                { x: enemy.x, y: enemy.y, radius: 20 },
-                sector
-            )) {
-                sector.life--;
-                enemies.splice(eIndex, 1);
+        // Virus vs Sector Único
+        if (checkCollisionRectCircle(enemy, dataSector)) {
+            dataSector.life--;
+            enemies.splice(i, 1);
+            if (dataSector.life <= 0) gameState = "gameover";
+        }
+        if (enemies[i] !== enemy) continue;
 
-                if (sector.life <= 0) {
-                    gameState = "gameover";
-                }
-            }
-        });
-
-        // Virus vs jugador
+        // Virus vs Jugador
         if (!shieldActive && checkCollisionCircle(
-            { x: enemy.x, y: enemy.y, radius: 25 },
+            { x: enemy.x, y: enemy.y, radius: enemy.radius },
             { x: player.x, y: player.y, radius: 30 }
         )) {
             gameState = "gameover";
         }
-    });
+    }
 
-    // PowerUps (escudo)
-    powerUps.forEach((p, i) => {
+    // Actualizar PowerUps
+    for (let i = powerUps.length - 1; i >= 0; i--) {
+        let p = powerUps[i];
         p.y += p.speed;
 
-        if (checkCollisionCircle(
-            { x: player.x, y: player.y, radius: 30 },
-            p
-        )) {
-            shieldActive = true;
-            shieldText.textContent = "ON";
-
-            setTimeout(() => {
-                shieldActive = false;
-                shieldText.textContent = "OFF";
-            }, 5000);
-
+        if (checkCollisionCircle({ x: player.x, y: player.y, radius: 30 }, p)) {
+            if (p.type === "shield") {
+                shieldActive = true;
+                setTimeout(() => shieldActive = false, 6000);
+            } else if (p.type === "multishot") {
+                multishotActive = true;
+                setTimeout(() => multishotActive = false, 6000);
+            } else if (p.type === "speed") {
+                speedBoostActive = true;
+                player.speed = player.baseSpeed + 4; // Aumenta velocidad
+                setTimeout(() => {
+                    speedBoostActive = false;
+                    player.speed = player.baseSpeed;
+                }, 6000);
+            }
+            powerUps.splice(i, 1);
+        } else if (p.y > canvas.height) {
             powerUps.splice(i, 1);
         }
-    });
+    }
 
-    // Bala vs BASE ENEMIGA
-    bullets.forEach((b, i) => {
-        if (checkCollisionRectCircle(b, enemyBase)) {
+    // Bala vs Base Enemiga (NIVEL COMPLETADO)
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        if (checkCollisionRectCircle(bullets[i], enemyBase)) {
             enemyBase.life--;
             bullets.splice(i, 1);
 
             if (enemyBase.life <= 0) {
-                gameState = "win";
+                levelUp(); // En lugar de ganar, subimos de nivel
             }
         }
-    });
+    }
 
-    baseLifeText.textContent = enemyBase.life;
-    scoreText.textContent = score;
+    // Textos HTML
+    if(baseLifeText) baseLifeText.innerText = enemyBase.life;
+    if(scoreText) scoreText.innerText = score;
 }
 
 // =======================
-// DRAW (RENDER)
+// DRAW (Dibujado)
 // =======================
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // BASE ENEMIGA (EN MOVIMIENTO)
-    ctx.drawImage(
-        baseImg,
-        enemyBase.x - enemyBase.width / 2,
-        enemyBase.y - enemyBase.height / 2,
-        enemyBase.width,
-        enemyBase.height
-    );
+    // Indicador de Nivel en el Canvas
+    ctx.fillStyle = "rgba(0, 242, 255, 0.2)";
+    ctx.font = "bold 100px 'Courier New'";
+    ctx.textAlign = "center";
+    ctx.fillText("NIVEL " + currentLevel, canvas.width / 2, canvas.height / 2 + 30);
 
-    ctx.fillStyle = "#ff0040";
-    ctx.font = "18px Arial";
-    ctx.fillText("Base: " + enemyBase.life, enemyBase.x - 40, enemyBase.y - 90);
+    // Dibujar Base Enemiga
+    ctx.drawImage(baseImg, enemyBase.x - enemyBase.width / 2, enemyBase.y - enemyBase.height / 2, enemyBase.width, enemyBase.height);
 
-    // NAVE (QUIETA)
-    ctx.drawImage(
-        playerImg,
-        player.x - player.width / 2,
-        player.y - player.height / 2,
-        player.width,
-        player.height
-    );
+    // Dibujar Sector Único
+    ctx.drawImage(sectorImg, dataSector.x - dataSector.width / 2, dataSector.y - dataSector.height / 2, dataSector.width, dataSector.height);
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 16px 'Courier New'";
+    ctx.fillText("HP: " + dataSector.life + "/" + dataSector.maxLife, dataSector.x, dataSector.y + 60);
 
-    // ESCUDO
-    if (shieldActive) {
-        ctx.strokeStyle = "#00ff9c";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, 40, 0, Math.PI * 2);
-        ctx.stroke();
-    }
+    // Dibujar Jugador
+    ctx.save();
+    if (shieldActive) { ctx.shadowBlur = 20; ctx.shadowColor = "#39ff14"; }
+    else if (speedBoostActive) { ctx.shadowBlur = 20; ctx.shadowColor = "#00f2ff"; }
+    else if (multishotActive) { ctx.shadowBlur = 20; ctx.shadowColor = "#ffcc00"; }
+    
+    ctx.drawImage(playerImg, player.x - player.width / 2, player.y - player.height / 2, player.width, player.height);
+    ctx.restore();
 
-    // SECTORES (BASES A PROTEGER)
-    dataSectors.forEach(sector => {
-        ctx.drawImage(
-            sectorImg,
-            sector.x - sector.width / 2,
-            sector.y - sector.height / 2,
-            sector.width,
-            sector.height
-        );
-
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "16px Arial";
-        ctx.fillText(
-            "HP: " + sector.life,
-            sector.x - 25,
-            sector.y - sector.height / 2 - 10
-        );
-    });
-
-    // BALAS
-    ctx.fillStyle = "#ff00ff";
+    // Dibujar Balas
+    ctx.fillStyle = "#00f2ff";
     bullets.forEach(b => {
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fill();
     });
 
-    // VIRUS (SALEN DE LA BASE Y ATACAN SECTORES)
+    // Dibujar Enemigos
     enemies.forEach(enemy => {
-        ctx.drawImage(
-            virusImg,
-            enemy.x - enemy.width / 2,
-            enemy.y - enemy.height / 2,
-            enemy.width,
-            enemy.height
-        );
+        ctx.drawImage(virusImg, enemy.x - enemy.width / 2, enemy.y - enemy.height / 2, enemy.width, enemy.height);
     });
 
-    // POWERUPS
-    ctx.fillStyle = "#00ff9c";
+    // Dibujar PowerUps con letras y colores
     powerUps.forEach(p => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
+        
+        if (p.type === "shield") ctx.fillStyle = "#39ff14"; // Verde
+        else if (p.type === "multishot") ctx.fillStyle = "#ffcc00"; // Amarillo
+        else if (p.type === "speed") ctx.fillStyle = "#00f2ff"; // Azul
+
+        ctx.fill(); ctx.strokeStyle = "white"; ctx.stroke();
+        
+        ctx.fillStyle = "black";
+        ctx.font = "bold 12px Arial";
+        let letter = p.type === "shield" ? "S" : (p.type === "multishot" ? "M" : "V");
+        ctx.fillText(letter, p.x, p.y + 4);
     });
 
-    // MIRA
-    ctx.strokeStyle = "#00ffea";
-    ctx.lineWidth = 2;
+    // Mira
+    ctx.strokeStyle = "#ff007a";
     ctx.beginPath();
-    ctx.arc(mouse.x, mouse.y, 12, 0, Math.PI * 2);
+    ctx.arc(mouse.x, mouse.y, 10, 0, Math.PI * 2);
+    ctx.moveTo(mouse.x - 15, mouse.y); ctx.lineTo(mouse.x + 15, mouse.y);
+    ctx.moveTo(mouse.x, mouse.y - 15); ctx.lineTo(mouse.x, mouse.y + 15);
     ctx.stroke();
 }
 
@@ -398,19 +423,20 @@ function draw() {
 // =======================
 function gameLoop() {
     if (gameState === "playing") {
-        update();
-        draw();
+        update(); draw();
     } else if (gameState === "gameover") {
-        gameOverScreen.classList.remove("d-none");
+        if(gameOverScreen) gameOverScreen.classList.remove("d-none");
     } else if (gameState === "win") {
-        winScreen.classList.remove("d-none");
+        if(winScreen) winScreen.classList.remove("d-none");
     }
-
     requestAnimationFrame(gameLoop);
 }
 
+gameLoop();
+
+// =======================
+// REINICIAR SISTEMA
+// =======================
 function restartGame() {
     location.reload();
 }
-
-gameLoop();
