@@ -23,7 +23,7 @@ const sectorImg = new Image(); sectorImg.src = "img/sector.png";
 const baseLifeText = document.getElementById("baseLife");
 const scoreText = document.getElementById("score");
 const shieldText = document.getElementById("shieldStatus");
-const playerLivesText = document.getElementById("playerLivesText"); // NUEVO
+const playerLivesText = document.getElementById("playerLivesText");
 const levelText = document.getElementById("levelText"); 
 const gameOverScreen = document.getElementById("gameOverScreen");
 const winScreen = document.getElementById("winScreen");
@@ -41,17 +41,17 @@ const maxLevels = 10;
 let shieldActive = false;
 let multishotActive = false;
 let speedBoostActive = false;
-let lastHitTime = Date.now(); // NUEVO: Para la regeneración del nivel 10
+let lastHitTime = Date.now(); 
 
 // =======================
-// JUGADOR (Ajustado con vidas)
+// JUGADOR
 // =======================
 const player = {
     x: canvas.width / 2, y: canvas.height / 2,
     width: 70, height: 70,
     baseSpeed: 5, speed: 5,
-    lives: 3,               // NUEVO: 3 Vidas
-    isInvulnerable: false   // NUEVO: Estado de daño
+    lives: 3,               
+    isInvulnerable: false   
 };
 
 // =======================
@@ -99,7 +99,7 @@ function startSpawners() {
                 radius: 14, speed: 2, type: selectedType
             });
         }
-    }, 10000);
+    }, 5000); 
 
     massiveWaveIntervalId = setInterval(() => {
         if (gameState === "playing") spawnMassiveWave();
@@ -209,7 +209,6 @@ function levelUp() {
     dataSector.maxLife = 5 + (currentLevel * 2);
     dataSector.life = dataSector.maxLife;
 
-    // Recuperamos 1 vida al pasar de nivel (Opcional, pero ayuda en niveles altos)
     if(player.lives < 3) player.lives++;
 
     enemies.length = 0; bullets.length = 0; powerUps.length = 0;
@@ -222,12 +221,10 @@ function levelUp() {
 function update() {
     movePlayer(); moveEnemyBase();
 
-    // NUEVA MECÁNICA: Regeneración Nivel 10
     if (currentLevel === 10 && gameState === "playing") {
-        // Si han pasado más de 1.5 segundos (1500 ms) sin recibir daño
         if (Date.now() - lastHitTime > 1500) {
             if (enemyBase.life < enemyBase.maxLife) {
-                enemyBase.life += 0.08; // Se cura gradualmente en cada frame
+                enemyBase.life += 0.08; 
             }
         }
     }
@@ -269,15 +266,13 @@ function update() {
         }
         if (enemies[i] !== enemy) continue;
 
-        // NUEVO: Daño al jugador (Sistema de Vidas)
         if (!shieldActive && !player.isInvulnerable && checkCollisionCircle({ x: enemy.x, y: enemy.y, radius: enemy.radius }, { x: player.x, y: player.y, radius: 30 })) {
-            player.lives--; // Restar una vida
-            enemies.splice(i, 1); // Destruir el virus que nos pegó
+            player.lives--; 
+            enemies.splice(i, 1); 
             
             if (player.lives <= 0) {
                 gameState = "gameover";
             } else {
-                // Hacer al jugador invulnerable por 2 segundos
                 player.isInvulnerable = true;
                 setTimeout(() => { player.isInvulnerable = false; }, 2000);
             }
@@ -301,7 +296,7 @@ function update() {
         if (checkCollisionRectCircle(bullets[i], enemyBase)) {
             enemyBase.life--;
             bullets.splice(i, 1);
-            lastHitTime = Date.now(); // Actualizar el reloj para evitar que regenere
+            lastHitTime = Date.now(); 
 
             if (enemyBase.life <= 0) {
                 gameState = "level_cleared"; 
@@ -311,8 +306,7 @@ function update() {
         }
     }
 
-    // Actualizar HUD
-    if(baseLifeText) baseLifeText.innerText = Math.ceil(enemyBase.life); // Math.ceil para redondear la regeneración
+    if(baseLifeText) baseLifeText.innerText = Math.ceil(enemyBase.life); 
     if(scoreText) scoreText.innerText = score;
     if(playerLivesText) playerLivesText.innerText = player.lives;
 }
@@ -326,10 +320,9 @@ function draw() {
     ctx.fillStyle = "rgba(0, 242, 255, 0.2)"; ctx.font = "bold 100px 'Courier New'"; ctx.textAlign = "center";
     ctx.fillText(currentLevel === 10 ? "NIVEL 10: JEFE" : "NIVEL " + currentLevel, canvas.width / 2, canvas.height / 2 + 30);
 
-    // DIBUJAR BASE ENEMIGA
+    // BASE ENEMIGA
     ctx.save();
     if (currentLevel === 10 && (Date.now() - lastHitTime > 1500) && enemyBase.life < enemyBase.maxLife) {
-        // Efecto visual de curación (Verde) en nivel 10
         ctx.filter = "sepia(100%) hue-rotate(90deg) saturate(300%)"; 
         ctx.shadowBlur = 30; ctx.shadowColor = "#39ff14";
     } else if (enemyBase.life <= enemyBase.maxLife * 0.5) {
@@ -341,14 +334,45 @@ function draw() {
     ctx.drawImage(baseImg, enemyBase.x - enemyBase.width / 2, enemyBase.y - enemyBase.height / 2, enemyBase.width, enemyBase.height);
     ctx.restore();
 
+    // ==========================================
+    // DIBUJAR SECTOR ÚNICO Y SU BARRA DE VIDA
+    // ==========================================
     ctx.drawImage(sectorImg, dataSector.x - dataSector.width / 2, dataSector.y - dataSector.height / 2, dataSector.width, dataSector.height);
-    ctx.fillStyle = "#fff"; ctx.font = "bold 16px 'Courier New'";
-    ctx.fillText("HP: " + dataSector.life + "/" + dataSector.maxLife, dataSector.x, dataSector.y + 60);
+    
+    const barWidth = 80;
+    const barHeight = 8;
+    const barX = dataSector.x - barWidth / 2;
+    const barY = dataSector.y + dataSector.height / 2 + 10; 
 
-    // DIBUJAR JUGADOR (Con efecto de parpadeo por invulnerabilidad)
+    const healthPercent = dataSector.life / dataSector.maxLife;
+
+    let barColor = "#39ff14"; 
+    if (healthPercent <= 0.5 && healthPercent > 0.25) {
+        barColor = "#ffcc00"; 
+    } else if (healthPercent <= 0.25) {
+        barColor = "#ff0000"; 
+    }
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+    
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+    ctx.fillStyle = barColor;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = barColor; 
+    ctx.fillRect(barX, barY, Math.max(0, barWidth * healthPercent), barHeight);
+    
+    ctx.shadowBlur = 0; 
+    ctx.fillStyle = "#fff"; 
+    ctx.font = "bold 12px 'Courier New'";
+    ctx.fillText("HP " + dataSector.life + "/" + dataSector.maxLife, dataSector.x, barY + 20);
+
+    // JUGADOR
     ctx.save();
     if (player.isInvulnerable) {
-        // Matemática avanzada: Hacer parpadear la opacidad usando una onda de Seno en el tiempo
         ctx.globalAlpha = Math.abs(Math.sin(Date.now() / 150)); 
     }
     
@@ -357,13 +381,16 @@ function draw() {
     else if (multishotActive) { ctx.shadowBlur = 20; ctx.shadowColor = "#ffcc00"; }
     
     ctx.drawImage(playerImg, player.x - player.width / 2, player.y - player.height / 2, player.width, player.height);
-    ctx.restore(); // Restaura la opacidad normal para lo demás
+    ctx.restore(); 
 
+    // BALAS
     ctx.fillStyle = "#00f2ff";
     bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fill(); });
 
+    // ENEMIGOS
     enemies.forEach(enemy => { ctx.drawImage(virusImg, enemy.x - enemy.width / 2, enemy.y - enemy.height / 2, enemy.width, enemy.height); });
 
+    // POWER UPS
     powerUps.forEach(p => {
         ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         if (p.type === "shield") ctx.fillStyle = "#39ff14"; 
@@ -375,6 +402,7 @@ function draw() {
         ctx.fillText(letter, p.x, p.y + 4);
     });
 
+    // MIRA
     ctx.strokeStyle = "#ff007a"; ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 10, 0, Math.PI * 2);
     ctx.moveTo(mouse.x - 15, mouse.y); ctx.lineTo(mouse.x + 15, mouse.y);
     ctx.moveTo(mouse.x, mouse.y - 15); ctx.lineTo(mouse.x, mouse.y + 15); ctx.stroke();
