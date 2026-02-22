@@ -21,7 +21,8 @@ const sectorImg = new Image(); sectorImg.src = "img/sector.png";
 // CARGA DE AUDIO
 // =======================
 const shootSound = new Audio("music/disparos.mp3");
-const spawnSound = new Audio("music/caidavirus.mp3"); // NUEVO: Audio para los virus
+const spawnSound = new Audio("music/caidavirus.mp3"); 
+const explosionSound = new Audio("music/explosion.mp3"); // NUEVO: Audio de explosión
 
 // =======================
 // HUD ELEMENTOS
@@ -117,7 +118,6 @@ function spawnVirus() {
     let baseVirusSpeed = 1.5 + (currentLevel * 0.2);
     enemies.push(createEnemyObject(angle, baseVirusSpeed));
     
-    // NUEVO: Reproducir sonido de caída normal
     const soundClone = spawnSound.cloneNode();
     soundClone.volume = 0.4;
     soundClone.play().catch(e => console.log("Audio play failed:", e));
@@ -133,7 +133,6 @@ function spawnMassiveWave() {
         enemies.push(createEnemyObject(angle, speed, startX, startY));
     }
     
-    // NUEVO: Reproducir un sonido de caída un poco más fuerte para la oleada
     const soundClone = spawnSound.cloneNode();
     soundClone.volume = 0.6;
     soundClone.play().catch(e => console.log("Audio play failed:", e));
@@ -273,9 +272,19 @@ function update() {
             }
         }
 
+        // COLISIÓN: BALA VS VIRUS (Aquí agregamos el sonido de explosión)
         for (let k = bullets.length - 1; k >= 0; k--) {
             if (checkCollisionRectCircle(bullets[k], enemy)) {
-                enemies.splice(i, 1); bullets.splice(k, 1); score += 10; break; 
+                
+                // REPRODUCIR SONIDO DE EXPLOSIÓN (Volumen más bajo para virus comunes)
+                const explClone = explosionSound.cloneNode();
+                explClone.volume = 0.4;
+                explClone.play().catch(e => console.log("Audio play failed:", e));
+
+                enemies.splice(i, 1); 
+                bullets.splice(k, 1); 
+                score += 10; 
+                break; 
             }
         }
         if (enemies[i] !== enemy) continue; 
@@ -312,11 +321,17 @@ function update() {
         } else if (p.y > canvas.height) powerUps.splice(i, 1);
     }
 
+    // COLISIÓN: BALA VS BASE ENEMIGA (JEFE) (Aquí también agregamos el sonido de explosión)
     for (let i = bullets.length - 1; i >= 0; i--) {
         if (checkCollisionRectCircle(bullets[i], enemyBase)) {
             enemyBase.life--;
             bullets.splice(i, 1);
             lastHitTime = Date.now(); 
+
+            // REPRODUCIR SONIDO DE EXPLOSIÓN (Volumen más alto al darle al jefe)
+            const explClone = explosionSound.cloneNode();
+            explClone.volume = 0.6;
+            explClone.play().catch(e => console.log("Audio play failed:", e));
 
             if (enemyBase.life <= 0) {
                 gameState = "level_cleared"; 

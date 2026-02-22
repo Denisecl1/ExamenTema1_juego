@@ -1,8 +1,23 @@
 body {
-    background: radial-gradient(circle, #020617, #000000);
-    overflow: hidden;
+    /* AQUÍ ESTÁ LA MAGIA: Agregamos un linear-gradient negro al 80% de opacidad antes de la imagen */
+    background-image: linear-gradient(rgba(5, 10, 20, 0.8), rgba(5, 10, 20, 0.8)), url('img/fondo.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    
+    color: #00f2ff;
+    font-family: 'Courier New', Courier, monospace;
+    margin: 0;
+    
+    /* Mantenemos tu configuración para poder bajar a ver el pie de página */
+    overflow-x: hidden; 
+    overflow-y: auto;   
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
 }
-
 canvas {
     border: 3px solid #00eaff;
     background: #050a1a;
