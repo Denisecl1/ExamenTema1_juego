@@ -18,6 +18,12 @@ const playerImg = new Image(); playerImg.src = "img/nave.png";
 const sectorImg = new Image(); sectorImg.src = "img/sector.png";
 
 // =======================
+// CARGA DE AUDIO
+// =======================
+const shootSound = new Audio("music/disparos.mp3");
+const spawnSound = new Audio("music/caidavirus.mp3"); // NUEVO: Audio para los virus
+
+// =======================
 // HUD ELEMENTOS
 // =======================
 const baseLifeText = document.getElementById("baseLife");
@@ -110,6 +116,11 @@ function spawnVirus() {
     const angle = Math.atan2(dataSector.y - (enemyBase.y + enemyBase.height / 2), dataSector.x - enemyBase.x);
     let baseVirusSpeed = 1.5 + (currentLevel * 0.2);
     enemies.push(createEnemyObject(angle, baseVirusSpeed));
+    
+    // NUEVO: Reproducir sonido de caída normal
+    const soundClone = spawnSound.cloneNode();
+    soundClone.volume = 0.4;
+    soundClone.play().catch(e => console.log("Audio play failed:", e));
 }
 
 function spawnMassiveWave() {
@@ -121,6 +132,11 @@ function spawnMassiveWave() {
         let startY = (enemyBase.y + enemyBase.height / 2) + Math.sin(angle) * radioAparicion;
         enemies.push(createEnemyObject(angle, speed, startX, startY));
     }
+    
+    // NUEVO: Reproducir un sonido de caída un poco más fuerte para la oleada
+    const soundClone = spawnSound.cloneNode();
+    soundClone.volume = 0.6;
+    soundClone.play().catch(e => console.log("Audio play failed:", e));
 }
 
 function createEnemyObject(angle, speed, startX = null, startY = null) {
@@ -138,7 +154,7 @@ function createEnemyObject(angle, speed, startX = null, startY = null) {
 startSpawners();
 
 // =======================
-// EVENTOS INPUT
+// EVENTOS INPUT Y DISPARO
 // =======================
 window.addEventListener("keydown", (e) => keys[e.key.toLowerCase()] = true);
 window.addEventListener("keyup", (e) => keys[e.key.toLowerCase()] = false);
@@ -151,6 +167,10 @@ canvas.addEventListener("mousemove", (e) => {
 canvas.addEventListener("click", () => {
     if (gameState !== "playing") return;
     const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+
+    const soundClone = shootSound.cloneNode();
+    soundClone.volume = 0.3; 
+    soundClone.play().catch(e => console.log("Audio play failed:", e));
 
     if (multishotActive) {
         [-0.2, 0, 0.2].forEach(offset => {
