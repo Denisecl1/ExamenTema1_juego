@@ -36,6 +36,21 @@
     <div class="d-flex justify-content-center position-relative">
         <canvas id="gameCanvas"></canvas>
 
+        <div id="startScreen" class="position-absolute top-50 start-50 translate-middle text-center p-4" style="background: rgba(5, 10, 20, 0.95); border: 2px solid #00f2ff; border-radius: 15px; z-index: 30; box-shadow: 0 0 40px rgba(0, 242, 255, 0.5); width: 80%; max-width: 500px;">
+            <h2 class="text-white mb-3" style="text-shadow: 0 0 15px #00f2ff; letter-spacing: 2px;">FIREWALL PROTOCOL</h2>
+            
+            <div class="text-start mb-4 text-info" style="font-size: 0.9rem; border-left: 3px solid #ff007a; padding-left: 15px;">
+                <p><strong>OBJETIVO:</strong> Defiende el núcleo de datos de las oleadas de virus.</p>
+                <p><strong>CONTROLES:</strong><br>
+                [ W, A, S, D ] o [ Flechas ] - Mover la nave<br>
+                [ Mouse ] - Apuntar<br>
+                [ Clic Izquierdo ] - Disparar</p>
+                <p class="mb-0"><strong>TIPS:</strong> Recolecta las ayudas de código (S: Escudo, M: Ráfaga, V: Velocidad).</p>
+            </div>
+
+            <button id="btnStartGame" class="btn btn-outline-info px-5 py-2 fs-5" style="border-color: #00f2ff; color: #00f2ff; font-weight: bold; box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);">INICIAR DEFENSA</button>
+        </div>
+
         <div id="nextLevelScreen" class="d-none position-absolute top-50 start-50 translate-middle text-center p-4" style="background: rgba(5, 5, 5, 0.9); border: 3px solid #ff007a; border-radius: 15px; z-index: 20; box-shadow: 0 0 30px #ff007a;">
             <h3 class="text-white mb-4" style="text-shadow: 0 0 10px #ff007a; letter-spacing: 2px;">¡FASE TERMINADA!</h3>
             <button id="btnNextLevel" class="btn btn-outline-danger px-4 py-2" style="border-color: #ff007a; color: #ff007a; font-weight: bold; box-shadow: 0 0 10px rgba(255, 0, 122, 0.3);">SIGUIENTE FASE</button>

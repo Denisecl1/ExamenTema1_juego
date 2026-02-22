@@ -22,25 +22,31 @@ const sectorImg = new Image(); sectorImg.src = "img/sector.png";
 // =======================
 const shootSound = new Audio("music/disparos.mp3");
 const spawnSound = new Audio("music/caidavirus.mp3"); 
-const explosionSound = new Audio("music/explosion.mp3"); // NUEVO: Audio de explosión
+const explosionSound = new Audio("music/explosion.mp3"); 
 
 // =======================
-// HUD ELEMENTOS
+// HUD ELEMENTOS Y PANTALLAS
 // =======================
 const baseLifeText = document.getElementById("baseLife");
 const scoreText = document.getElementById("score");
 const shieldText = document.getElementById("shieldStatus");
 const playerLivesText = document.getElementById("playerLivesText");
 const levelText = document.getElementById("levelText"); 
+
 const gameOverScreen = document.getElementById("gameOverScreen");
 const winScreen = document.getElementById("winScreen");
 const nextLevelScreen = document.getElementById("nextLevelScreen");
 const btnNextLevel = document.getElementById("btnNextLevel");
 
+// NUEVAS REFERENCIAS PARA PANTALLA DE INICIO
+const startScreen = document.getElementById("startScreen");
+const btnStartGame = document.getElementById("btnStartGame");
+
 // =======================
 // ESTADO DEL JUEGO Y NIVELES
 // =======================
-let gameState = "playing";
+// CAMBIADO: Inicia en "start" en lugar de "playing"
+let gameState = "start"; 
 let score = 0;
 let currentLevel = 1;
 const maxLevels = 10;
@@ -150,12 +156,25 @@ function createEnemyObject(angle, speed, startX = null, startY = null) {
     };
 }
 
-startSpawners();
+// EVENTO PARA EL BOTÓN DE INICIO
+if (btnStartGame) {
+    btnStartGame.addEventListener("click", () => {
+        if(startScreen) startScreen.classList.add("d-none"); 
+        gameState = "playing"; 
+        startSpawners(); 
+    });
+}
 
 // =======================
 // EVENTOS INPUT Y DISPARO
 // =======================
-window.addEventListener("keydown", (e) => keys[e.key.toLowerCase()] = true);
+window.addEventListener("keydown", (e) => {
+    keys[e.key.toLowerCase()] = true;
+    if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].indexOf(e.key) > -1) {
+        e.preventDefault();
+    }
+});
+
 window.addEventListener("keyup", (e) => keys[e.key.toLowerCase()] = false);
 
 canvas.addEventListener("mousemove", (e) => {
@@ -272,11 +291,10 @@ function update() {
             }
         }
 
-        // COLISIÓN: BALA VS VIRUS (Aquí agregamos el sonido de explosión)
+        // COLISIÓN: BALA VS VIRUS 
         for (let k = bullets.length - 1; k >= 0; k--) {
             if (checkCollisionRectCircle(bullets[k], enemy)) {
                 
-                // REPRODUCIR SONIDO DE EXPLOSIÓN (Volumen más bajo para virus comunes)
                 const explClone = explosionSound.cloneNode();
                 explClone.volume = 0.4;
                 explClone.play().catch(e => console.log("Audio play failed:", e));
@@ -321,14 +339,13 @@ function update() {
         } else if (p.y > canvas.height) powerUps.splice(i, 1);
     }
 
-    // COLISIÓN: BALA VS BASE ENEMIGA (JEFE) (Aquí también agregamos el sonido de explosión)
+    // COLISIÓN: BALA VS BASE ENEMIGA
     for (let i = bullets.length - 1; i >= 0; i--) {
         if (checkCollisionRectCircle(bullets[i], enemyBase)) {
             enemyBase.life--;
             bullets.splice(i, 1);
             lastHitTime = Date.now(); 
 
-            // REPRODUCIR SONIDO DE EXPLOSIÓN (Volumen más alto al darle al jefe)
             const explClone = explosionSound.cloneNode();
             explClone.volume = 0.6;
             explClone.play().catch(e => console.log("Audio play failed:", e));
@@ -443,9 +460,13 @@ function draw() {
     ctx.moveTo(mouse.x, mouse.y - 15); ctx.lineTo(mouse.x, mouse.y + 15); ctx.stroke();
 }
 
+// CAMBIADO: La lógica de dibujado ahora permite ver el fondo en la pantalla de inicio
 function gameLoop() {
     if (gameState === "playing") {
-        update(); draw();
+        update(); 
+        draw();
+    } else if (gameState === "start") {
+        draw(); // Dibuja la nave y base, pero nada se mueve
     } else if (gameState === "gameover") {
         if(gameOverScreen) gameOverScreen.classList.remove("d-none");
     } else if (gameState === "win") {
