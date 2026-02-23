@@ -10,6 +10,12 @@ canvas.width = 1000;
 canvas.height = 600;
 
 // =======================
+// DETECCIÓN DE DISPOSITIVO (NUEVO)
+// =======================
+// Si la pantalla mide menos de 900px, asumimos que es celular/tablet vertical
+const isMobile = window.innerWidth < 900; 
+
+// =======================
 // CARGA DE IMÁGENES
 // =======================
 const baseImg = new Image(); baseImg.src = "img/base.png";
@@ -27,25 +33,24 @@ const explosionSound = new Audio("music/explosion.mp3");
 // =======================
 // HUD ELEMENTOS Y PANTALLAS
 // =======================
-// Referencias del HUD
 const enemyHealthBar = document.getElementById("enemyHealthBar"); 
-const baseLifeText = document.getElementById("baseLife"); // (Opcional, si aún lo usas)
+const baseLifeText = document.getElementById("baseLife"); 
 const scoreText = document.getElementById("score");
 const highScoreText = document.getElementById("highScoreText");
 const shieldText = document.getElementById("shieldStatus");
 const playerLivesText = document.getElementById("playerLivesText");
+const levelText = document.getElementById("levelText"); 
 
-// Referencias de Pantallas
 const gameOverScreen = document.getElementById("gameOverScreen");
-const finalScoreText = document.getElementById("finalScore"); // <--- REFERENCIA AL PUNTAJE FINAL
+const finalScoreText = document.getElementById("finalScore"); 
 const winScreen = document.getElementById("winScreen");
 const nextLevelScreen = document.getElementById("nextLevelScreen");
-const startScreen = document.getElementById("startScreen");
-const pauseScreen = document.getElementById("pauseScreen");
-
-// Referencias de Botones
 const btnNextLevel = document.getElementById("btnNextLevel");
+
+const startScreen = document.getElementById("startScreen");
 const btnStartGame = document.getElementById("btnStartGame");
+
+const pauseScreen = document.getElementById("pauseScreen");
 const btnTogglePause = document.getElementById("btnTogglePause");
 const btnResume = document.getElementById("btnResume");
 
@@ -62,7 +67,6 @@ const btnFire = document.getElementById("btnFire");
 let gameState = "start"; 
 let score = 0;
 
-// Recuperar récord guardado
 let highScore = localStorage.getItem("firewallHighScore") ? parseInt(localStorage.getItem("firewallHighScore")) : 0;
 
 let currentLevel = 1;
@@ -76,32 +80,38 @@ let lastHitTime = Date.now();
 if(highScoreText) highScoreText.innerText = highScore;
 
 // =======================
-// JUGADOR
+// JUGADOR (TAMAÑO DINÁMICO)
 // =======================
 const player = {
     x: canvas.width / 2, y: canvas.height / 2,
-    width: 70, height: 70,
+    // Si es móvil usa 90, si es PC usa 70 (el tamaño original perfecto)
+    width: isMobile ? 90 : 70, 
+    height: isMobile ? 90 : 70,
     baseSpeed: 5, speed: 5,
     lives: 3,               
     isInvulnerable: false   
 };
 
 // =======================
-// BASE ENEMIGA (JEFE)
+// BASE ENEMIGA (TAMAÑO DINÁMICO)
 // =======================
 const enemyBase = {
-    x: canvas.width / 2, y: 90,
-    width: 130, height: 130,
+    x: canvas.width / 2, y: isMobile ? 110 : 90, // Un poco más abajo en móvil
+    // Si es móvil usa 180 (Gigante), si es PC usa 130 (Original)
+    width: isMobile ? 180 : 130, 
+    height: isMobile ? 180 : 130,     
     maxLife: 50, life: 50, 
     speed: 2, direction: 1
 };
 
 // =======================
-// SECTOR A PROTEGER
+// SECTOR A PROTEGER (TAMAÑO DINÁMICO)
 // =======================
 const dataSector = { 
     x: canvas.width / 2, y: 520, 
-    width: 90, height: 90, 
+    // Si es móvil usa 120, si es PC usa 90 (Original)
+    width: isMobile ? 120 : 90, 
+    height: isMobile ? 120 : 90,     
     maxLife: 5, life: 5 
 };
 
@@ -152,7 +162,10 @@ function spawnMassiveWave() {
     for (let i = 0; i < 8; i++) {
         const angle = (Math.PI / 7) * i; 
         let speed = 1.5 + (currentLevel * 0.2);
-        let radioAparicion = 45; 
+        
+        // Ajustamos el radio de aparición: Más lejos si la base es gigante (Móvil), más cerca si es normal (PC)
+        let radioAparicion = isMobile ? 100 : 55;
+        
         let startX = enemyBase.x + Math.cos(angle) * radioAparicion;
         let startY = (enemyBase.y + enemyBase.height / 2) + Math.sin(angle) * radioAparicion;
         enemies.push(createEnemyObject(angle, speed, startX, startY));
@@ -340,7 +353,6 @@ function update() {
             }
         }
 
-        // Colisión BALA vs VIRUS
         for (let k = bullets.length - 1; k >= 0; k--) {
             if (checkCollisionRectCircle(bullets[k], enemy)) {
                 
@@ -356,26 +368,22 @@ function update() {
         }
         if (enemies[i] !== enemy) continue; 
 
-        // Colisión VIRUS vs SECTOR
         if (checkCollisionRectCircle(enemy, dataSector)) {
             dataSector.life--; enemies.splice(i, 1);
             if (dataSector.life <= 0) {
                 gameState = "gameover";
-                // AQUI MOSTRAMOS EL PUNTAJE FINAL
                 if(finalScoreText) finalScoreText.innerText = score; 
                 if(btnTogglePause) btnTogglePause.classList.add("d-none"); 
             }
         }
         if (enemies[i] !== enemy) continue;
 
-        // Colisión VIRUS vs JUGADOR
         if (!shieldActive && !player.isInvulnerable && checkCollisionCircle({ x: enemy.x, y: enemy.y, radius: enemy.radius }, { x: player.x, y: player.y, radius: 30 })) {
             player.lives--; 
             enemies.splice(i, 1); 
             
             if (player.lives <= 0) {
                 gameState = "gameover";
-                // AQUI TAMBIEN MOSTRAMOS EL PUNTAJE FINAL
                 if(finalScoreText) finalScoreText.innerText = score;
                 if(btnTogglePause) btnTogglePause.classList.add("d-none"); 
             } else {
@@ -398,7 +406,6 @@ function update() {
         } else if (p.y > canvas.height) powerUps.splice(i, 1);
     }
 
-    // Colisión BALA vs BASE ENEMIGA
     for (let i = bullets.length - 1; i >= 0; i--) {
         if (checkCollisionRectCircle(bullets[i], enemyBase)) {
             enemyBase.life--;
@@ -418,13 +425,11 @@ function update() {
         }
     }
 
-    // Actualizar Récord
     if (score > highScore) {
         highScore = score;
         localStorage.setItem("firewallHighScore", highScore);
     }
 
-    // ACTUALIZACIÓN DEL HUD (Barra Visual)
     if (enemyHealthBar) {
         const hpPercent = Math.max(0, (enemyBase.life / enemyBase.maxLife) * 100);
         enemyHealthBar.style.width = hpPercent + "%";
