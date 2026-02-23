@@ -27,9 +27,8 @@ const explosionSound = new Audio("music/explosion.mp3");
 // =======================
 // HUD ELEMENTOS Y PANTALLAS
 // =======================
-// REFERENCIA NUEVA: La barra de progreso del HTML
-const enemyHealthBar = document.getElementById("enemyHealthBar"); 
-
+const enemyHealthBar = document.getElementById("enemyHealthBar"); // Barra Visual
+const baseLifeText = document.getElementById("baseLife"); // Texto (Opcional)
 const scoreText = document.getElementById("score");
 const highScoreText = document.getElementById("highScoreText");
 const shieldText = document.getElementById("shieldStatus");
@@ -47,6 +46,13 @@ const btnStartGame = document.getElementById("btnStartGame");
 const pauseScreen = document.getElementById("pauseScreen");
 const btnTogglePause = document.getElementById("btnTogglePause");
 const btnResume = document.getElementById("btnResume");
+
+// Referencias para controles móviles
+const btnUp = document.getElementById("btnUp");
+const btnDown = document.getElementById("btnDown");
+const btnLeft = document.getElementById("btnLeft");
+const btnRight = document.getElementById("btnRight");
+const btnFire = document.getElementById("btnFire");
 
 // =======================
 // ESTADO DEL JUEGO Y NIVELES
@@ -213,9 +219,13 @@ window.addEventListener("keydown", (e) => {
 
 window.addEventListener("keyup", (e) => keys[e.key.toLowerCase()] = false);
 
+// Ajuste del mouse/touch para que funcione el escalado en celular
 canvas.addEventListener("mousemove", (e) => {
     const rect = canvas.getBoundingClientRect();
-    mouse.x = e.clientX - rect.left; mouse.y = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    mouse.x = (e.clientX - rect.left) * scaleX;
+    mouse.y = (e.clientY - rect.top) * scaleY;
 });
 
 canvas.addEventListener("click", () => {
@@ -404,20 +414,16 @@ function update() {
         localStorage.setItem("firewallHighScore", highScore);
     }
 
-    // ACTUALIZACIÓN DEL HUD
+    // ACTUALIZACIÓN DEL HUD (Barra Visual)
     if (enemyHealthBar) {
-        // Calcular porcentaje de vida
         const hpPercent = Math.max(0, (enemyBase.life / enemyBase.maxLife) * 100);
-        
-        // Asignar el ancho en CSS
         enemyHealthBar.style.width = hpPercent + "%";
 
-        // Efecto visual: si la vida es baja (menor al 25%), parpadea en blanco
         if (hpPercent < 25) {
-            enemyHealthBar.style.backgroundColor = "#fff"; // Blanco crítico
+            enemyHealthBar.style.backgroundColor = "#fff"; 
             enemyHealthBar.style.boxShadow = "0 0 15px #fff";
         } else {
-            enemyHealthBar.style.backgroundColor = "#ff007a"; // Rosa neón normal
+            enemyHealthBar.style.backgroundColor = "#ff007a"; 
             enemyHealthBar.style.boxShadow = "0 0 10px #ff007a";
         }
     }
@@ -450,10 +456,10 @@ function draw() {
     ctx.drawImage(baseImg, enemyBase.x - enemyBase.width / 2, enemyBase.y - enemyBase.height / 2, enemyBase.width, enemyBase.height);
     ctx.restore();
 
-    // DIBUJAR SECTOR ÚNICO
+    // SECTOR
     ctx.drawImage(sectorImg, dataSector.x - dataSector.width / 2, dataSector.y - dataSector.height / 2, dataSector.width, dataSector.height);
     
-    // Barra de vida del sector (Dibujada en Canvas)
+    // Barra de vida del SECTOR (Canvas)
     const barWidth = 80;
     const barHeight = 8;
     const barX = dataSector.x - barWidth / 2;
@@ -498,14 +504,12 @@ function draw() {
     ctx.drawImage(playerImg, player.x - player.width / 2, player.y - player.height / 2, player.width, player.height);
     ctx.restore(); 
 
-    // BALAS
+    // OBJETOS
     ctx.fillStyle = "#00f2ff";
     bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fill(); });
 
-    // ENEMIGOS
     enemies.forEach(enemy => { ctx.drawImage(virusImg, enemy.x - enemy.width / 2, enemy.y - enemy.height / 2, enemy.width, enemy.height); });
 
-    // POWER UPS
     powerUps.forEach(p => {
         ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         if (p.type === "shield") ctx.fillStyle = "#39ff14"; 
@@ -522,6 +526,66 @@ function draw() {
     ctx.moveTo(mouse.x - 15, mouse.y); ctx.lineTo(mouse.x + 15, mouse.y);
     ctx.moveTo(mouse.x, mouse.y - 15); ctx.lineTo(mouse.x, mouse.y + 15); ctx.stroke();
 }
+
+// ==========================================
+// LÓGICA PARA CELULAR (TOUCH CONTROLS)
+// ==========================================
+function setKey(key, status) {
+    keys[key] = status;
+}
+
+if(btnUp) {
+    btnUp.addEventListener("touchstart", (e) => { e.preventDefault(); setKey("w", true); });
+    btnUp.addEventListener("touchend", (e) => { e.preventDefault(); setKey("w", false); });
+}
+if(btnDown) {
+    btnDown.addEventListener("touchstart", (e) => { e.preventDefault(); setKey("s", true); });
+    btnDown.addEventListener("touchend", (e) => { e.preventDefault(); setKey("s", false); });
+}
+if(btnLeft) {
+    btnLeft.addEventListener("touchstart", (e) => { e.preventDefault(); setKey("a", true); });
+    btnLeft.addEventListener("touchend", (e) => { e.preventDefault(); setKey("a", false); });
+}
+if(btnRight) {
+    btnRight.addEventListener("touchstart", (e) => { e.preventDefault(); setKey("d", true); });
+    btnRight.addEventListener("touchend", (e) => { e.preventDefault(); setKey("d", false); });
+}
+
+// Botón de Disparo Móvil (Auto-apunta a la base enemiga)
+if(btnFire) {
+    btnFire.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        if (gameState !== "playing") return;
+
+        const angle = Math.atan2(
+            (enemyBase.y + enemyBase.height/2) - player.y, 
+            enemyBase.x - player.x
+        );
+
+        const soundClone = shootSound.cloneNode();
+        soundClone.volume = 0.3;
+        soundClone.play().catch(e => console.log(e));
+
+        if (multishotActive) {
+            [-0.2, 0, 0.2].forEach(offset => {
+                bullets.push({ x: player.x, y: player.y, dx: Math.cos(angle + offset) * 10, dy: Math.sin(angle + offset) * 10, radius: 6 });
+            });
+        } else {
+            bullets.push({ x: player.x, y: player.y, dx: Math.cos(angle) * 10, dy: Math.sin(angle) * 10, radius: 6 });
+        }
+    });
+}
+
+// Ajuste del touch en el canvas para que funcione el escalado
+canvas.addEventListener("touchstart", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    mouse.x = (touch.clientX - rect.left) * scaleX;
+    mouse.y = (touch.clientY - rect.top) * scaleY;
+}, {passive: false});
 
 function gameLoop() {
     if (gameState === "playing") {
