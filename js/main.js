@@ -27,23 +27,25 @@ const explosionSound = new Audio("music/explosion.mp3");
 // =======================
 // HUD ELEMENTOS Y PANTALLAS
 // =======================
-const enemyHealthBar = document.getElementById("enemyHealthBar"); // Barra Visual
-const baseLifeText = document.getElementById("baseLife"); // Texto (Opcional)
+// Referencias del HUD
+const enemyHealthBar = document.getElementById("enemyHealthBar"); 
+const baseLifeText = document.getElementById("baseLife"); // (Opcional, si aún lo usas)
 const scoreText = document.getElementById("score");
 const highScoreText = document.getElementById("highScoreText");
 const shieldText = document.getElementById("shieldStatus");
 const playerLivesText = document.getElementById("playerLivesText");
-const levelText = document.getElementById("levelText"); 
 
+// Referencias de Pantallas
 const gameOverScreen = document.getElementById("gameOverScreen");
+const finalScoreText = document.getElementById("finalScore"); // <--- REFERENCIA AL PUNTAJE FINAL
 const winScreen = document.getElementById("winScreen");
 const nextLevelScreen = document.getElementById("nextLevelScreen");
-const btnNextLevel = document.getElementById("btnNextLevel");
-
 const startScreen = document.getElementById("startScreen");
-const btnStartGame = document.getElementById("btnStartGame");
-
 const pauseScreen = document.getElementById("pauseScreen");
+
+// Referencias de Botones
+const btnNextLevel = document.getElementById("btnNextLevel");
+const btnStartGame = document.getElementById("btnStartGame");
 const btnTogglePause = document.getElementById("btnTogglePause");
 const btnResume = document.getElementById("btnResume");
 
@@ -60,6 +62,7 @@ const btnFire = document.getElementById("btnFire");
 let gameState = "start"; 
 let score = 0;
 
+// Recuperar récord guardado
 let highScore = localStorage.getItem("firewallHighScore") ? parseInt(localStorage.getItem("firewallHighScore")) : 0;
 
 let currentLevel = 1;
@@ -207,11 +210,9 @@ if (btnResume) btnResume.addEventListener("click", togglePause);
 
 window.addEventListener("keydown", (e) => {
     keys[e.key.toLowerCase()] = true;
-    
     if(["arrowup","arrowdown","arrowleft","arrowright"," "].indexOf(e.key.toLowerCase()) > -1) {
         e.preventDefault();
     }
-
     if(e.key.toLowerCase() === 'p' || e.key === 'Escape') {
         togglePause();
     }
@@ -339,6 +340,7 @@ function update() {
             }
         }
 
+        // Colisión BALA vs VIRUS
         for (let k = bullets.length - 1; k >= 0; k--) {
             if (checkCollisionRectCircle(bullets[k], enemy)) {
                 
@@ -354,21 +356,27 @@ function update() {
         }
         if (enemies[i] !== enemy) continue; 
 
+        // Colisión VIRUS vs SECTOR
         if (checkCollisionRectCircle(enemy, dataSector)) {
             dataSector.life--; enemies.splice(i, 1);
             if (dataSector.life <= 0) {
                 gameState = "gameover";
+                // AQUI MOSTRAMOS EL PUNTAJE FINAL
+                if(finalScoreText) finalScoreText.innerText = score; 
                 if(btnTogglePause) btnTogglePause.classList.add("d-none"); 
             }
         }
         if (enemies[i] !== enemy) continue;
 
+        // Colisión VIRUS vs JUGADOR
         if (!shieldActive && !player.isInvulnerable && checkCollisionCircle({ x: enemy.x, y: enemy.y, radius: enemy.radius }, { x: player.x, y: player.y, radius: 30 })) {
             player.lives--; 
             enemies.splice(i, 1); 
             
             if (player.lives <= 0) {
                 gameState = "gameover";
+                // AQUI TAMBIEN MOSTRAMOS EL PUNTAJE FINAL
+                if(finalScoreText) finalScoreText.innerText = score;
                 if(btnTogglePause) btnTogglePause.classList.add("d-none"); 
             } else {
                 player.isInvulnerable = true;
@@ -390,6 +398,7 @@ function update() {
         } else if (p.y > canvas.height) powerUps.splice(i, 1);
     }
 
+    // Colisión BALA vs BASE ENEMIGA
     for (let i = bullets.length - 1; i >= 0; i--) {
         if (checkCollisionRectCircle(bullets[i], enemyBase)) {
             enemyBase.life--;
@@ -409,6 +418,7 @@ function update() {
         }
     }
 
+    // Actualizar Récord
     if (score > highScore) {
         highScore = score;
         localStorage.setItem("firewallHighScore", highScore);
