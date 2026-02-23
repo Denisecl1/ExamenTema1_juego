@@ -27,9 +27,11 @@ const explosionSound = new Audio("music/explosion.mp3");
 // =======================
 // HUD ELEMENTOS Y PANTALLAS
 // =======================
-const baseLifeText = document.getElementById("baseLife");
+// REFERENCIA NUEVA: La barra de progreso del HTML
+const enemyHealthBar = document.getElementById("enemyHealthBar"); 
+
 const scoreText = document.getElementById("score");
-const highScoreText = document.getElementById("highScoreText"); // NUEVO: Récord
+const highScoreText = document.getElementById("highScoreText");
 const shieldText = document.getElementById("shieldStatus");
 const playerLivesText = document.getElementById("playerLivesText");
 const levelText = document.getElementById("levelText"); 
@@ -52,7 +54,6 @@ const btnResume = document.getElementById("btnResume");
 let gameState = "start"; 
 let score = 0;
 
-// NUEVO: Recuperar récord guardado en el navegador (si no hay, inicia en 0)
 let highScore = localStorage.getItem("firewallHighScore") ? parseInt(localStorage.getItem("firewallHighScore")) : 0;
 
 let currentLevel = 1;
@@ -63,7 +64,6 @@ let multishotActive = false;
 let speedBoostActive = false;
 let lastHitTime = Date.now(); 
 
-// Inicializar el texto del récord en pantalla
 if(highScoreText) highScoreText.innerText = highScore;
 
 // =======================
@@ -399,16 +399,31 @@ function update() {
         }
     }
 
-    // NUEVO: Lógica para actualizar y guardar el High Score
     if (score > highScore) {
         highScore = score;
         localStorage.setItem("firewallHighScore", highScore);
     }
 
-    // Actualizar Textos en el HTML
-    if(baseLifeText) baseLifeText.innerText = Math.ceil(enemyBase.life); 
+    // ACTUALIZACIÓN DEL HUD
+    if (enemyHealthBar) {
+        // Calcular porcentaje de vida
+        const hpPercent = Math.max(0, (enemyBase.life / enemyBase.maxLife) * 100);
+        
+        // Asignar el ancho en CSS
+        enemyHealthBar.style.width = hpPercent + "%";
+
+        // Efecto visual: si la vida es baja (menor al 25%), parpadea en blanco
+        if (hpPercent < 25) {
+            enemyHealthBar.style.backgroundColor = "#fff"; // Blanco crítico
+            enemyHealthBar.style.boxShadow = "0 0 15px #fff";
+        } else {
+            enemyHealthBar.style.backgroundColor = "#ff007a"; // Rosa neón normal
+            enemyHealthBar.style.boxShadow = "0 0 10px #ff007a";
+        }
+    }
+
     if(scoreText) scoreText.innerText = score;
-    if(highScoreText) highScoreText.innerText = highScore; // Muestra el récord en pantalla
+    if(highScoreText) highScoreText.innerText = highScore; 
     if(playerLivesText) playerLivesText.innerText = player.lives;
 }
 
@@ -435,11 +450,10 @@ function draw() {
     ctx.drawImage(baseImg, enemyBase.x - enemyBase.width / 2, enemyBase.y - enemyBase.height / 2, enemyBase.width, enemyBase.height);
     ctx.restore();
 
-    // ==========================================
-    // DIBUJAR SECTOR ÚNICO Y SU BARRA DE VIDA
-    // ==========================================
+    // DIBUJAR SECTOR ÚNICO
     ctx.drawImage(sectorImg, dataSector.x - dataSector.width / 2, dataSector.y - dataSector.height / 2, dataSector.width, dataSector.height);
     
+    // Barra de vida del sector (Dibujada en Canvas)
     const barWidth = 80;
     const barHeight = 8;
     const barX = dataSector.x - barWidth / 2;

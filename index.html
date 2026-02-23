@@ -13,14 +13,24 @@
 
     <div class="container mt-3">
         <h1 class="text-info fw-bold">🛡️ Ciber-Defensa: Asalto al Firewall</h1>
-        <p class="text-secondary">Protege los sectores de datos y destruye la base de virus</p>
+        <p class="text-secondary">Protege el sector de  datos y destruye la base de virus</p>
     </div>
 
     <div class="hud container mb-3">
         <div class="row align-items-center justify-content-center gap-3">
-            <div class="col-auto">
-                <span>❤️ Vida Base Enemiga: <span id="baseLife">50</span></span>
+
+            <div class="col-auto d-flex flex-column align-items-center">
+                <span style="font-size: 0.75rem; color: #ff007a; text-shadow: 0 0 5px #ff007a; font-weight: bold; margin-bottom: 2px;">
+                    ❤️ BASE ENEMIGA
+                </span>
+                
+                <div class="progress" style="height: 12px; width: 150px; background-color: rgba(0,0,0,0.5); border: 1px solid #ff007a; box-shadow: 0 0 8px rgba(255, 0, 122, 0.4);">
+                    <div id="enemyHealthBar" class="progress-bar" role="progressbar" style="width: 100%; background-color: #ff007a; box-shadow: 0 0 10px #ff007a; transition: width 0.2s ease;"></div>
+                </div>
             </div>
+        
+
+
             <div class="col-auto">
                 <span>📊 Puntuación: <span id="score">0</span></span>
             </div>
