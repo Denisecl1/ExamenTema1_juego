@@ -29,6 +29,7 @@ const explosionSound = new Audio("music/explosion.mp3");
 // =======================
 const baseLifeText = document.getElementById("baseLife");
 const scoreText = document.getElementById("score");
+const highScoreText = document.getElementById("highScoreText"); // NUEVO: Récord
 const shieldText = document.getElementById("shieldStatus");
 const playerLivesText = document.getElementById("playerLivesText");
 const levelText = document.getElementById("levelText"); 
@@ -38,16 +39,22 @@ const winScreen = document.getElementById("winScreen");
 const nextLevelScreen = document.getElementById("nextLevelScreen");
 const btnNextLevel = document.getElementById("btnNextLevel");
 
-// NUEVAS REFERENCIAS PARA PANTALLA DE INICIO
 const startScreen = document.getElementById("startScreen");
 const btnStartGame = document.getElementById("btnStartGame");
+
+const pauseScreen = document.getElementById("pauseScreen");
+const btnTogglePause = document.getElementById("btnTogglePause");
+const btnResume = document.getElementById("btnResume");
 
 // =======================
 // ESTADO DEL JUEGO Y NIVELES
 // =======================
-// CAMBIADO: Inicia en "start" en lugar de "playing"
 let gameState = "start"; 
 let score = 0;
+
+// NUEVO: Recuperar récord guardado en el navegador (si no hay, inicia en 0)
+let highScore = localStorage.getItem("firewallHighScore") ? parseInt(localStorage.getItem("firewallHighScore")) : 0;
+
 let currentLevel = 1;
 const maxLevels = 10;
 
@@ -55,6 +62,9 @@ let shieldActive = false;
 let multishotActive = false;
 let speedBoostActive = false;
 let lastHitTime = Date.now(); 
+
+// Inicializar el texto del récord en pantalla
+if(highScoreText) highScoreText.innerText = highScore;
 
 // =======================
 // JUGADOR
@@ -156,22 +166,48 @@ function createEnemyObject(angle, speed, startX = null, startY = null) {
     };
 }
 
-// EVENTO PARA EL BOTÓN DE INICIO
-if (btnStartGame) {
-    btnStartGame.addEventListener("click", () => {
-        if(startScreen) startScreen.classList.add("d-none"); 
-        gameState = "playing"; 
-        startSpawners(); 
-    });
+// =======================
+// LÓGICA DE PAUSA
+// =======================
+function togglePause() {
+    if (gameState === "playing") {
+        gameState = "paused";
+        pauseScreen.classList.remove("d-none");
+        btnTogglePause.innerText = "▶ REANUDAR (P)";
+    } 
+    else if (gameState === "paused") {
+        gameState = "playing";
+        pauseScreen.classList.add("d-none");
+        btnTogglePause.innerText = "⏸ PAUSAR (P)";
+        lastHitTime = Date.now(); 
+    }
 }
 
 // =======================
 // EVENTOS INPUT Y DISPARO
 // =======================
+if (btnStartGame) {
+    btnStartGame.addEventListener("click", () => {
+        if(startScreen) startScreen.classList.add("d-none"); 
+        if(btnTogglePause) btnTogglePause.classList.remove("d-none"); 
+        gameState = "playing"; 
+        startSpawners(); 
+        lastHitTime = Date.now();
+    });
+}
+
+if (btnTogglePause) btnTogglePause.addEventListener("click", togglePause);
+if (btnResume) btnResume.addEventListener("click", togglePause);
+
 window.addEventListener("keydown", (e) => {
     keys[e.key.toLowerCase()] = true;
-    if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].indexOf(e.key) > -1) {
+    
+    if(["arrowup","arrowdown","arrowleft","arrowright"," "].indexOf(e.key.toLowerCase()) > -1) {
         e.preventDefault();
+    }
+
+    if(e.key.toLowerCase() === 'p' || e.key === 'Escape') {
+        togglePause();
     }
 });
 
@@ -204,6 +240,7 @@ if (btnNextLevel) {
         nextLevelScreen.classList.add("d-none"); 
         levelUp(); 
         gameState = "playing"; 
+        lastHitTime = Date.now();
     });
 }
 
@@ -236,6 +273,7 @@ function levelUp() {
     currentLevel++;
     if (currentLevel > maxLevels) {
         gameState = "win";
+        if(btnTogglePause) btnTogglePause.classList.add("d-none"); 
         if(winScreen) winScreen.classList.remove("d-none");
         return;
     }
@@ -291,7 +329,6 @@ function update() {
             }
         }
 
-        // COLISIÓN: BALA VS VIRUS 
         for (let k = bullets.length - 1; k >= 0; k--) {
             if (checkCollisionRectCircle(bullets[k], enemy)) {
                 
@@ -309,7 +346,10 @@ function update() {
 
         if (checkCollisionRectCircle(enemy, dataSector)) {
             dataSector.life--; enemies.splice(i, 1);
-            if (dataSector.life <= 0) gameState = "gameover";
+            if (dataSector.life <= 0) {
+                gameState = "gameover";
+                if(btnTogglePause) btnTogglePause.classList.add("d-none"); 
+            }
         }
         if (enemies[i] !== enemy) continue;
 
@@ -319,6 +359,7 @@ function update() {
             
             if (player.lives <= 0) {
                 gameState = "gameover";
+                if(btnTogglePause) btnTogglePause.classList.add("d-none"); 
             } else {
                 player.isInvulnerable = true;
                 setTimeout(() => { player.isInvulnerable = false; }, 2000);
@@ -339,7 +380,6 @@ function update() {
         } else if (p.y > canvas.height) powerUps.splice(i, 1);
     }
 
-    // COLISIÓN: BALA VS BASE ENEMIGA
     for (let i = bullets.length - 1; i >= 0; i--) {
         if (checkCollisionRectCircle(bullets[i], enemyBase)) {
             enemyBase.life--;
@@ -352,14 +392,23 @@ function update() {
 
             if (enemyBase.life <= 0) {
                 gameState = "level_cleared"; 
+                if(btnTogglePause) btnTogglePause.classList.add("d-none"); 
                 clearInterval(virusIntervalId); clearInterval(powerUpIntervalId); clearInterval(massiveWaveIntervalId);
                 if (nextLevelScreen) nextLevelScreen.classList.remove("d-none");
             }
         }
     }
 
+    // NUEVO: Lógica para actualizar y guardar el High Score
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("firewallHighScore", highScore);
+    }
+
+    // Actualizar Textos en el HTML
     if(baseLifeText) baseLifeText.innerText = Math.ceil(enemyBase.life); 
     if(scoreText) scoreText.innerText = score;
+    if(highScoreText) highScoreText.innerText = highScore; // Muestra el récord en pantalla
     if(playerLivesText) playerLivesText.innerText = player.lives;
 }
 
@@ -374,7 +423,7 @@ function draw() {
 
     // BASE ENEMIGA
     ctx.save();
-    if (currentLevel === 10 && (Date.now() - lastHitTime > 1500) && enemyBase.life < enemyBase.maxLife) {
+    if (currentLevel === 10 && (Date.now() - lastHitTime > 1500) && enemyBase.life < enemyBase.maxLife && gameState === "playing") {
         ctx.filter = "sepia(100%) hue-rotate(90deg) saturate(300%)"; 
         ctx.shadowBlur = 30; ctx.shadowColor = "#39ff14";
     } else if (enemyBase.life <= enemyBase.maxLife * 0.5) {
@@ -460,13 +509,12 @@ function draw() {
     ctx.moveTo(mouse.x, mouse.y - 15); ctx.lineTo(mouse.x, mouse.y + 15); ctx.stroke();
 }
 
-// CAMBIADO: La lógica de dibujado ahora permite ver el fondo en la pantalla de inicio
 function gameLoop() {
     if (gameState === "playing") {
         update(); 
         draw();
-    } else if (gameState === "start") {
-        draw(); // Dibuja la nave y base, pero nada se mueve
+    } else if (gameState === "start" || gameState === "paused") {
+        draw(); 
     } else if (gameState === "gameover") {
         if(gameOverScreen) gameOverScreen.classList.remove("d-none");
     } else if (gameState === "win") {

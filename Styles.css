@@ -43,3 +43,16 @@ canvas {
     color: #00eaff;
     z-index: 10;
 }
+
+/* =========================================
+   ESTILO PARA EL RECUADRO DE RÉCORD (HUD)
+   ========================================= */
+.record-box {
+    background-color: rgba(255, 204, 0, 0.1);
+    border: 1px solid #ffcc00;
+    color: #ffcc00;
+    text-shadow: 0 0 5px #ffcc00;
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+    font-weight: bold;
+    letter-spacing: 1px;
+}

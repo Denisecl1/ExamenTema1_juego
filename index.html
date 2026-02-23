@@ -16,25 +16,33 @@
         <p class="text-secondary">Protege los sectores de datos y destruye la base de virus</p>
     </div>
 
-    <div class="hud container mb-2">
-        <div class="row">
-            <div class="col">
+    <div class="hud container mb-3">
+        <div class="row align-items-center justify-content-center gap-3">
+            <div class="col-auto">
                 <span>❤️ Vida Base Enemiga: <span id="baseLife">50</span></span>
             </div>
-            <div class="col">
+            <div class="col-auto">
                 <span>📊 Puntuación: <span id="score">0</span></span>
             </div>
-            <div class="col">
+            <div class="col-auto">
                 <span>🛡️ Escudo: <span id="shieldStatus">OFF</span></span>
             </div>
-            <div class="col">
+            <div class="col-auto">
                 <span>🚀 Vidas: <span id="playerLivesText">3</span></span>
+            </div>
+            
+            <div class="col-auto">
+                <div class="px-3 py-1 rounded record-box">
+                    🏆 Récord: <span id="highScoreText">0</span>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="d-flex justify-content-center position-relative">
         <canvas id="gameCanvas"></canvas>
+
+        <button id="btnTogglePause" class="btn btn-sm btn-outline-warning position-absolute top-0 end-0 m-3 d-none" style="z-index: 10; border-color: #ffcc00; color: #ffcc00; font-weight: bold; box-shadow: 0 0 10px rgba(255, 204, 0, 0.3);">⏸ PAUSAR (P)</button>
 
         <div id="startScreen" class="position-absolute top-50 start-50 translate-middle text-center p-4" style="background: rgba(5, 10, 20, 0.95); border: 2px solid #00f2ff; border-radius: 15px; z-index: 30; box-shadow: 0 0 40px rgba(0, 242, 255, 0.5); width: 80%; max-width: 500px;">
             <h2 class="text-white mb-3" style="text-shadow: 0 0 15px #00f2ff; letter-spacing: 2px;">FIREWALL PROTOCOL</h2>
@@ -44,11 +52,17 @@
                 <p><strong>CONTROLES:</strong><br>
                 [ W, A, S, D ] o [ Flechas ] - Mover la nave<br>
                 [ Mouse ] - Apuntar<br>
-                [ Clic Izquierdo ] - Disparar</p>
+                [ Clic Izquierdo ] - Disparar<br>
+                [ P o ESC ] - Pausar juego</p>
                 <p class="mb-0"><strong>TIPS:</strong> Recolecta las ayudas de código (S: Escudo, M: Ráfaga, V: Velocidad).</p>
             </div>
 
             <button id="btnStartGame" class="btn btn-outline-info px-5 py-2 fs-5" style="border-color: #00f2ff; color: #00f2ff; font-weight: bold; box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);">INICIAR DEFENSA</button>
+        </div>
+
+        <div id="pauseScreen" class="d-none position-absolute top-50 start-50 translate-middle text-center p-4" style="background: rgba(5, 10, 20, 0.95); border: 2px solid #ffcc00; border-radius: 15px; z-index: 25; box-shadow: 0 0 30px rgba(255, 204, 0, 0.4);">
+            <h3 class="text-white mb-4" style="text-shadow: 0 0 10px #ffcc00; letter-spacing: 2px;">⏸ Juego Pausado</h3>
+            <button id="btnResume" class="btn btn-outline-warning px-4 py-2" style="border-color: #ffcc00; color: #e9e7e0; font-weight: bold;">REANUDAR</button>
         </div>
 
         <div id="nextLevelScreen" class="d-none position-absolute top-50 start-50 translate-middle text-center p-4" style="background: rgba(5, 5, 5, 0.9); border: 3px solid #ff007a; border-radius: 15px; z-index: 20; box-shadow: 0 0 30px #ff007a;">
