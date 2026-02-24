@@ -87,7 +87,7 @@ canvas {
 /* Mostrar controles SOLO en pantallas pequeñas (Celulares/Tablets) */
 @media (max-width: 900px) {
     
-    /* === SOLUCIÓN: Ocultar el footer en celular para liberar espacio === */
+    /* Ocultar el footer en celular para liberar espacio */
     footer {
         display: none !important;
     }
@@ -98,9 +98,8 @@ canvas {
         justify-content: space-between;
         padding: 5px 20px; 
         
-        /* === POSICIÓN PERFECTA === */
         position: fixed; 
-        bottom: 20px; /* Los bajamos para que estén cómodos para el dedo */
+        bottom: 20px; /* Posición cómoda para el dedo */
         z-index: 100;
         pointer-events: none; /* Permite tocar el área vacía sin bloquear */
     }
@@ -114,15 +113,15 @@ canvas {
         gap: 8px; /* Espacio entre botones */
     }
 
-    /* Estilo general del botón táctil */
+    /* Estilo general del botón táctil (Flechas) */
     .touch-btn {
-        width: 65px; /* Un pelín más grandes para mejor tacto */
-        height: 65px;
-        background: rgba(0, 242, 255, 0.15); /* Más transparente para ver el fondo */
+        width: 55px;  /* <--- TAMAÑO REDUCIDO */
+        height: 55px; /* <--- TAMAÑO REDUCIDO */
+        background: rgba(0, 242, 255, 0.15);
         border: 2px solid #00f2ff;
         border-radius: 50%;
         color: white;
-        font-size: 24px;
+        font-size: 20px; /* <--- ÍCONO REDUCIDO */
         font-weight: bold;
         display: flex;
         align-items: center;
@@ -130,7 +129,7 @@ canvas {
         user-select: none;
         box-shadow: 0 0 10px #00f2ff;
         transition: transform 0.1s;
-        backdrop-filter: blur(2px); /* Efecto borroso elegante */
+        backdrop-filter: blur(2px);
     }
 
     /* Efecto al presionar */
@@ -139,14 +138,14 @@ canvas {
         transform: scale(0.90);
     }
 
-    /* Botón de Fuego (Diferente color) */
+    /* Botón de Fuego (Diferente color y tamaño) */
     .fire-btn {
-        width: 85px; /* Botón de disparo más grande */
-        height: 85px;
+        width: 70px;  /* <--- TAMAÑO REDUCIDO */
+        height: 70px; /* <--- TAMAÑO REDUCIDO */
         border-color: #ff007a;
         background: rgba(255, 0, 122, 0.15);
         box-shadow: 0 0 15px #ff007a;
-        font-size: 32px;
+        font-size: 26px; /* <--- ÍCONO REDUCIDO */
     }
     
     .fire-btn:active {
