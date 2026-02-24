@@ -87,22 +87,20 @@ canvas {
 /* Mostrar controles SOLO en pantallas pequeñas (Celulares/Tablets) */
 @media (max-width: 900px) {
     
-    /* Ajuste extra: Reducir tamaño del texto del footer en celular */
-    footer p {
-        font-size: 0.75rem !important;
-        margin-bottom: 0 !important;
+    /* === SOLUCIÓN: Ocultar el footer en celular para liberar espacio === */
+    footer {
+        display: none !important;
     }
 
     #mobileControls {
-        display: flex; /* Se activan con JS, pero definimos flex por si acaso */
+        display: flex; /* Se activan con JS */
         width: 100%;
         justify-content: space-between;
         padding: 5px 20px; 
         
-        /* === CORRECCIÓN DEFINITIVA === */
-        /* Los subimos 130px para que NO toquen el pie de página */
+        /* === POSICIÓN PERFECTA === */
         position: fixed; 
-        bottom: 130px; 
+        bottom: 20px; /* Los bajamos para que estén cómodos para el dedo */
         z-index: 100;
         pointer-events: none; /* Permite tocar el área vacía sin bloquear */
     }
@@ -113,14 +111,14 @@ canvas {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 5px; /* Botones más juntitos */
+        gap: 8px; /* Espacio entre botones */
     }
 
     /* Estilo general del botón táctil */
     .touch-btn {
-        width: 60px;
-        height: 60px;
-        background: rgba(0, 242, 255, 0.2);
+        width: 65px; /* Un pelín más grandes para mejor tacto */
+        height: 65px;
+        background: rgba(0, 242, 255, 0.15); /* Más transparente para ver el fondo */
         border: 2px solid #00f2ff;
         border-radius: 50%;
         color: white;
@@ -129,28 +127,29 @@ canvas {
         display: flex;
         align-items: center;
         justify-content: center;
-        user-select: none; /* No se puede seleccionar el texto */
+        user-select: none;
         box-shadow: 0 0 10px #00f2ff;
         transition: transform 0.1s;
+        backdrop-filter: blur(2px); /* Efecto borroso elegante */
     }
 
     /* Efecto al presionar */
     .touch-btn:active {
-        background: rgba(0, 242, 255, 0.6);
+        background: rgba(0, 242, 255, 0.5);
         transform: scale(0.90);
     }
 
     /* Botón de Fuego (Diferente color) */
     .fire-btn {
-        width: 80px;
-        height: 80px;
+        width: 85px; /* Botón de disparo más grande */
+        height: 85px;
         border-color: #ff007a;
-        background: rgba(255, 0, 122, 0.2);
+        background: rgba(255, 0, 122, 0.15);
         box-shadow: 0 0 15px #ff007a;
-        font-size: 30px;
+        font-size: 32px;
     }
     
     .fire-btn:active {
-        background: rgba(255, 0, 122, 0.6);
+        background: rgba(255, 0, 122, 0.5);
     }
 }
