@@ -55,7 +55,7 @@ const btnTogglePause = document.getElementById("btnTogglePause");
 const btnResume = document.getElementById("btnResume");
 
 // REFERENCIAS PARA CONTROLES MÓVILES
-const mobileControlsContainer = document.getElementById("mobileControls"); // <--- IMPORTANTE: El contenedor
+const mobileControlsContainer = document.getElementById("mobileControls"); 
 const btnUp = document.getElementById("btnUp");
 const btnDown = document.getElementById("btnDown");
 const btnLeft = document.getElementById("btnLeft");
@@ -164,7 +164,6 @@ function spawnMassiveWave() {
         const angle = (Math.PI / 7) * i; 
         let speed = 1.5 + (currentLevel * 0.2);
         
-        // Ajustamos el radio para que no nazcan dentro de la base gigante
         let radioAparicion = isMobile ? 100 : 55;
         
         let startX = enemyBase.x + Math.cos(angle) * radioAparicion;
@@ -537,10 +536,12 @@ function draw() {
         ctx.fillText(letter, p.x, p.y + 4);
     });
 
-    // MIRA
-    ctx.strokeStyle = "#ff007a"; ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 10, 0, Math.PI * 2);
-    ctx.moveTo(mouse.x - 15, mouse.y); ctx.lineTo(mouse.x + 15, mouse.y);
-    ctx.moveTo(mouse.x, mouse.y - 15); ctx.lineTo(mouse.x, mouse.y + 15); ctx.stroke();
+    // MIRA (SOLO SI NO ES MÓVIL)
+    if (!isMobile) {
+        ctx.strokeStyle = "#ff007a"; ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 10, 0, Math.PI * 2);
+        ctx.moveTo(mouse.x - 15, mouse.y); ctx.lineTo(mouse.x + 15, mouse.y);
+        ctx.moveTo(mouse.x, mouse.y - 15); ctx.lineTo(mouse.x, mouse.y + 15); ctx.stroke();
+    }
 }
 
 // ==========================================
@@ -605,8 +606,7 @@ canvas.addEventListener("touchstart", (e) => {
 
 function gameLoop() {
     
-    // === ESTA ES LA CORRECCIÓN CLAVE ===
-    // Solo muestra botones si estamos "playing" y si es "isMobile"
+    // MOSTRAR U OCULTAR CONTROLES MÓVILES
     if (mobileControlsContainer && isMobile) {
         if (gameState === "playing") {
             mobileControlsContainer.style.display = "flex";

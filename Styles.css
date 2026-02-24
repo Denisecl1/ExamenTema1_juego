@@ -90,9 +90,11 @@ canvas {
         display: flex; /* Se activan con JS, pero definimos flex por si acaso */
         width: 100%;
         justify-content: space-between;
-        padding: 5px 10px; /* Menos padding para ocupar menos espacio */
+        padding: 5px 20px; 
+        
+        /* === CORRECCIÓN IMPORTANTE === */
         position: fixed; 
-        bottom: 10px; /* Más pegado al borde inferior */
+        bottom: 70px; /* Subimos los botones para que NO tapen el footer */
         z-index: 100;
         pointer-events: none; /* Permite tocar el área vacía sin bloquear */
     }
@@ -103,7 +105,7 @@ canvas {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 5px; /* Botones más juntitos */
+        gap: 8px; /* Espacio entre botones */
     }
 
     /* Estilo general del botón táctil */
