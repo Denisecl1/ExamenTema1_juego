@@ -10,7 +10,7 @@ canvas.width = 1000;
 canvas.height = 600;
 
 // =======================
-// DETECCIÓN DE DISPOSITIVO (NUEVO)
+// DETECCIÓN DE DISPOSITIVO
 // =======================
 // Si la pantalla mide menos de 900px, asumimos que es celular/tablet vertical
 const isMobile = window.innerWidth < 900; 
@@ -54,7 +54,8 @@ const pauseScreen = document.getElementById("pauseScreen");
 const btnTogglePause = document.getElementById("btnTogglePause");
 const btnResume = document.getElementById("btnResume");
 
-// Referencias para controles móviles
+// REFERENCIAS PARA CONTROLES MÓVILES
+const mobileControlsContainer = document.getElementById("mobileControls"); // <--- IMPORTANTE: El contenedor
 const btnUp = document.getElementById("btnUp");
 const btnDown = document.getElementById("btnDown");
 const btnLeft = document.getElementById("btnLeft");
@@ -80,11 +81,11 @@ let lastHitTime = Date.now();
 if(highScoreText) highScoreText.innerText = highScore;
 
 // =======================
-// JUGADOR (TAMAÑO DINÁMICO)
+// JUGADOR (TAMAÑO ADAPTATIVO)
 // =======================
 const player = {
     x: canvas.width / 2, y: canvas.height / 2,
-    // Si es móvil usa 90, si es PC usa 70 (el tamaño original perfecto)
+    // Si es móvil usa 90, si es PC usa 70
     width: isMobile ? 90 : 70, 
     height: isMobile ? 90 : 70,
     baseSpeed: 5, speed: 5,
@@ -93,11 +94,11 @@ const player = {
 };
 
 // =======================
-// BASE ENEMIGA (TAMAÑO DINÁMICO)
+// BASE ENEMIGA (TAMAÑO ADAPTATIVO)
 // =======================
 const enemyBase = {
-    x: canvas.width / 2, y: isMobile ? 110 : 90, // Un poco más abajo en móvil
-    // Si es móvil usa 180 (Gigante), si es PC usa 130 (Original)
+    x: canvas.width / 2, y: isMobile ? 110 : 90, 
+    // Si es móvil usa 180 (Gigante), si es PC usa 130
     width: isMobile ? 180 : 130, 
     height: isMobile ? 180 : 130,     
     maxLife: 50, life: 50, 
@@ -105,11 +106,11 @@ const enemyBase = {
 };
 
 // =======================
-// SECTOR A PROTEGER (TAMAÑO DINÁMICO)
+// SECTOR A PROTEGER (TAMAÑO ADAPTATIVO)
 // =======================
 const dataSector = { 
     x: canvas.width / 2, y: 520, 
-    // Si es móvil usa 120, si es PC usa 90 (Original)
+    // Si es móvil usa 120, si es PC usa 90
     width: isMobile ? 120 : 90, 
     height: isMobile ? 120 : 90,     
     maxLife: 5, life: 5 
@@ -163,7 +164,7 @@ function spawnMassiveWave() {
         const angle = (Math.PI / 7) * i; 
         let speed = 1.5 + (currentLevel * 0.2);
         
-        // Ajustamos el radio de aparición: Más lejos si la base es gigante (Móvil), más cerca si es normal (PC)
+        // Ajustamos el radio para que no nazcan dentro de la base gigante
         let radioAparicion = isMobile ? 100 : 55;
         
         let startX = enemyBase.x + Math.cos(angle) * radioAparicion;
@@ -566,7 +567,7 @@ if(btnRight) {
     btnRight.addEventListener("touchend", (e) => { e.preventDefault(); setKey("d", false); });
 }
 
-// Botón de Disparo Móvil (Auto-apunta a la base enemiga)
+// Botón de Disparo Móvil
 if(btnFire) {
     btnFire.addEventListener("touchstart", (e) => {
         e.preventDefault();
@@ -591,7 +592,7 @@ if(btnFire) {
     });
 }
 
-// Ajuste del touch en el canvas para que funcione el escalado
+// Ajuste del touch en el canvas
 canvas.addEventListener("touchstart", (e) => {
     const rect = canvas.getBoundingClientRect();
     const touch = e.touches[0];
@@ -603,6 +604,17 @@ canvas.addEventListener("touchstart", (e) => {
 }, {passive: false});
 
 function gameLoop() {
+    
+    // === ESTA ES LA CORRECCIÓN CLAVE ===
+    // Solo muestra botones si estamos "playing" y si es "isMobile"
+    if (mobileControlsContainer && isMobile) {
+        if (gameState === "playing") {
+            mobileControlsContainer.style.display = "flex";
+        } else {
+            mobileControlsContainer.style.display = "none";
+        }
+    }
+
     if (gameState === "playing") {
         update(); 
         draw();
