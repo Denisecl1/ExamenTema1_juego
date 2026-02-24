@@ -86,15 +86,23 @@ canvas {
 
 /* Mostrar controles SOLO en pantallas pequeñas (Celulares/Tablets) */
 @media (max-width: 900px) {
+    
+    /* Ajuste extra: Reducir tamaño del texto del footer en celular */
+    footer p {
+        font-size: 0.75rem !important;
+        margin-bottom: 0 !important;
+    }
+
     #mobileControls {
         display: flex; /* Se activan con JS, pero definimos flex por si acaso */
         width: 100%;
         justify-content: space-between;
         padding: 5px 20px; 
         
-        /* === CORRECCIÓN IMPORTANTE === */
+        /* === CORRECCIÓN DEFINITIVA === */
+        /* Los subimos 130px para que NO toquen el pie de página */
         position: fixed; 
-        bottom: 70px; /* Subimos los botones para que NO tapen el footer */
+        bottom: 130px; 
         z-index: 100;
         pointer-events: none; /* Permite tocar el área vacía sin bloquear */
     }
@@ -105,7 +113,7 @@ canvas {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 8px; /* Espacio entre botones */
+        gap: 5px; /* Botones más juntitos */
     }
 
     /* Estilo general del botón táctil */
